@@ -1,10 +1,11 @@
-import numpy as np
 import cv2
 
 
-def extract_overlapped_patches(overlap_prop,from_path, to_path='', patch_height=640, patch_width=640):
+def extract_overlapped_patches(overlap_prop, from_path, to_path='', patch_height=640, patch_width=640):
     """Crop patches of a given image with a specified overlap proportion. The overlap proportion
-    must be a number between 0 and 1."""
+    must be a number between 0 and 1. If the given overlap doesn't make patches cover the whole
+    image, a bigger one will be used and returned by the function"""
+
     img = cv2.imread(from_path)
 
     h_overlap = int(patch_height * overlap_prop)
@@ -22,66 +23,52 @@ def extract_overlapped_patches(overlap_prop,from_path, to_path='', patch_height=
     elif img_width < patch_width:
         raise ValueError("Patch width can't be bigger than image width")
 
-    cy = [] # List of the y-axis coordinates of each patch centre
-    acum_height = 0
-    i = 0
-
-    # Check if given overlap make patches cover the hole image in Y axis
-    while acum_height < img_height:
-        cyi = 0
-        if len(cy) == 0:
-            cyi = patch_height / 2
-        else:
-            cyi = cy[i-1] + patch_height - h_overlap
-        cy.append(cyi)
-        acum_height = cyi + patch_height / 2
-        i += 1
-
-    if acum_height > img_height:
-        height_dif = acum_height - img_height
-        extra_overlap = height_dif / (len(cy)-1)
-        true_h_overlap = h_overlap + extra_overlap
-        # Change overlap for one that make patches cover the whole image
-        for j  in range(1, len(cy)):
-            cy[j] = cy[j-1] + patch_height - true_h_overlap
-
-    # Same process but for X axis
-    cx = [] # List of the x-axis coordinates of each patch centre
-    acum_width = 0
-    i = 0
-
-    while acum_width < img_width:
-        cxi = 0
-        if len(cx) == 0:
-            cxi = patch_width / 2
-        else:
-            cxi = cx[i-1] + patch_width - w_overlap
-        cx.append(cxi)
-        acum_width = cxi + patch_width / 2
-        i += 1
-
-    if acum_width > img_width:
-        width_dif = acum_width - img_width
-        extra_overlap = width_dif / (len(cx)-1)
-        true_w_overlap = w_overlap + extra_overlap
-        for j in range(1, len(cx)):
-            cx[j] = cx[j-1] + patch_width - true_w_overlap
+    patch_centers_y, true_h_overlap = calculate_patch_coords(patch_height, img_height, h_overlap)
+    patch_centers_x, true_w_overlap = calculate_patch_coords(patch_width, img_width, w_overlap)
     
     # Create patches
-    for j in range(len(cy)):
-        for k in range(len(cx)):
-            y_inf = int(cy[j] - patch_height / 2)
-            x_inf = int(cx[k] - patch_width / 2)
+    for j in range(len(patch_centers_y)):
+        for k in range(len(patch_centers_x)):
+            y_inf = int(patch_centers_y[j] - patch_height / 2)
+            x_inf = int(patch_centers_x[k] - patch_width / 2)
             patch_img = img[y_inf:y_inf+patch_height, x_inf:x_inf+patch_width]
 
-            cv2.imwrite(to_path + '/' + f'patch_{j}_{k}.png', patch_img)
+            if to_path == '':
+                cv2.imwrite(f'patch_{j}_{k}.png', patch_img)
+            else:
+                cv2.imwrite(to_path + '/' + f'patch_{j}_{k}.png', patch_img)
 
+    # The used overlap proportion used in X and Y axis
     return true_h_overlap/patch_height, true_w_overlap/patch_width
 
 
+def calculate_patch_coords(patch_size, img_size, overlap):
+    cc = [] # Patch center coordinates of a specified axis
+    acum_size = 0
+    i = 0
+    while acum_size < img_size:
+        ci = 0
+        if len(cc) == 0:
+            ci = patch_size / 2
+        else:
+            ci = cc[i-1] + patch_size - overlap
+        cc.append(ci)
+        acum_size = ci + patch_size / 2
+        i += 1
+
+    if acum_size > img_size:
+        size_dif = acum_size - img_size
+        extra_overlap = size_dif / (len(cc)-1)
+        true_overlap = overlap + extra_overlap
+        # Change overlap for one that make patches cover the whole image
+        for j  in range(1, len(cc)):
+            cc[j] = cc[j-1] + patch_size - true_overlap
+
+    return cc, true_overlap
+
+
 if __name__ == '__main__':
-    imageName = 'YourImageName'
-    print(extract_overlapped_patches(0.2, 'YourImage.png', imageName))
+    print(extract_overlapped_patches(0.2, 'yourImage.png', 'your destination folder path'))
         
 
 
