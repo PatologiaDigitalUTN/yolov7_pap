@@ -1,10 +1,16 @@
 import cv2
 
 
-def extract_overlapped_patches(overlap_prop, from_path, to_path='', patch_height=640, patch_width=640):
-    """Crop patches of a given image with a specified overlap proportion. The overlap proportion
-    must be a number between 0 and 1. If the given overlap doesn't make patches cover the whole
-    image, a bigger one will be used and returned by the function"""
+def extract_overlapped_patches(overlap_prop, from_path,
+                               patch_height=640, patch_width=640, save=False, to_path=''):
+    """
+    Crop patches of a given image with a specified overlap proportion. The overlap 
+    proportion must be a number between 0 and 1. If the given overlap doesn't make patches 
+    cover the whole image, a bigger one will be used.
+    Returns:
+    dict: Key contains a tuple with x and y coordinates of the patch's center, value contains
+    a cv2 image of the patch.
+    """
 
     img = cv2.imread(from_path)
 
@@ -26,6 +32,7 @@ def extract_overlapped_patches(overlap_prop, from_path, to_path='', patch_height
     patch_centers_y, true_h_overlap = calculate_patch_coords(patch_height, img_height, h_overlap)
     patch_centers_x, true_w_overlap = calculate_patch_coords(patch_width, img_width, w_overlap)
     
+    patches = {}
     # Create patches
     for j in range(len(patch_centers_y)):
         for k in range(len(patch_centers_x)):
@@ -33,13 +40,16 @@ def extract_overlapped_patches(overlap_prop, from_path, to_path='', patch_height
             x_inf = int(patch_centers_x[k] - patch_width / 2)
             patch_img = img[y_inf:y_inf+patch_height, x_inf:x_inf+patch_width]
 
-            if to_path == '':
-                cv2.imwrite(f'patch_{j}_{k}.png', patch_img)
-            else:
-                cv2.imwrite(to_path + '/' + f'patch_{j}_{k}.png', patch_img)
+            # Add patch with its center coordinates to the image
+            patches[(patch_centers_x[k], patch_centers_y[j])] = patch_img
+            
+            if save == True:
+                if to_path == '':
+                    cv2.imwrite(f'patch_{j}_{k}.png', patch_img)
+                else:
+                    cv2.imwrite(to_path + '/' + f'patch_{j}_{k}.png', patch_img)
 
-    # The used overlap proportion used in X and Y axis
-    return true_h_overlap/patch_height, true_w_overlap/patch_width
+    return patches
 
 
 def calculate_patch_coords(patch_size, img_size, overlap):
@@ -68,7 +78,4 @@ def calculate_patch_coords(patch_size, img_size, overlap):
 
 
 if __name__ == '__main__':
-    print(extract_overlapped_patches(0.2, 'yourImage.png', 'your destination folder path'))
-        
-
-
+    patches = extract_overlapped_patches(0.2, 'YourImage.png')
