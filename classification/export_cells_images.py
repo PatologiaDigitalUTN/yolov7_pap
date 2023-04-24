@@ -2,28 +2,14 @@ import json
 import cv2
 import os
 
-def correctSize(xx, yy):
-  corrected_x = width_in_image
-  corrected_y = height_in_image
-  # if xx + width_in_image > 1:
-  #   corrected_x = width_in_image - ((xx + width_in_image) - 1)
-  
-  # if yy + height_in_image > 1:
-  #   corrected_y = height_in_image - ((yy + height_in_image) - 1)
+source = "H:\\PatoUTN\\pap\\CROC original\\base"
+dest = "H:\\PatoUTN\\pap\\CROC original\\imgs_for_classification"
 
-  return corrected_x, corrected_y
-
-classes = {
-    "Negative for intraepithelial lesion" : 0,
-    "ASC-US" : 1,
-    "ASC-H" : 2,
-    "LSIL" : 3,
-    "HSIL" : 4,
-    "SCC" : 5,
-}
+if not os.path.exists(dest):
+  os.mkdir(dest)
 
 # JSON file
-filename = 'C:\\PatoUTN\\CRIC\\original\\classifications.json'
+filename = 'H:\\PatoUTN\\pap\\CROC original\\classifications.json'
 f = open (filename, "r")
 data = json.loads(f.read())
 
@@ -35,29 +21,49 @@ size = 640
 width = 90
 height = 90
 
-dest = "C:\\PatoUTN\\CRIC\\imgs_for_classification"
-
 for image in data:
+  image_name = os.path.join(source, image['image_name'])
 
-    # if not image['image_name'] == 'fb5e83755f682922aee859fd52013c36.png':
-    #   continue
-    
-    image_name = image['image_name']
+  image_name_only, image_extension = os.path.splitext(image['image_name'])
 
-    image_name_only, image_extension = os.path.splitext(image_name)
+  cv_img = cv2.imread(image_name)
 
-    cv_img = cv2.imwrite(image_name)
+  for cell in image['classifications']:
+    x = int(cell['nucleus_x'])
+    y = int(cell['nucleus_y'])
 
-    for cell in image['classifications']:
-      cell_class = 0
+    img_class = cell['bethesda_system']
 
-      x = int(cell['nucleus_x'])
-      y = int(cell['nucleus_y'])
+    from_y = int(y-height/2)
+    to_y = int(y+height/2)
 
-     #falta agregar la clase
+    from_x = int(x-width/2)
+    to_x = int(x+width/2)
 
-      cell_image = cv_img[int(y-height/2):int(y+height/2), int(x-width/2):int(x+width/2)]
-      cv2.imwrite(os.path.join(dest, f"{image_name_only}_{x}_{y}.{image_extension}"))
+    if from_y < 0:
+      to_y = to_y + abs(from_y)
+      from_y = 0
+
+    if from_x < 0:
+      to_x = to_x + abs(from_x)
+      from_x = 0
+
+    if to_y > cv_img.shape[0]:
+      from_y = from_y - (to_y - cv_img.shape[0])
+      to_y = cv_img.shape[0]
+
+    if to_x > cv_img.shape[1]:
+      from_x = from_x - (to_x - cv_img.shape[1])
+      to_x = cv_img.shape[1]
+
+    cell_image = cv_img[from_y:to_y, from_x:to_x]
+
+    class_folder = os.path.join(dest, img_class)
+
+    if not os.path.exists(class_folder):
+      os.mkdir(class_folder)
+
+    cv2.imwrite(os.path.join(class_folder, f"{image_name_only}_{x}_{y}{image_extension}"), cell_image)
 
 # Closing JSON file
 f.close()
