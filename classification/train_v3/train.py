@@ -84,6 +84,7 @@ def validate(model, testloader, criterion):
     valid_running_loss = 0.0
     valid_running_correct = 0
     counter = 0
+    best_valid_acc = 0
     with torch.no_grad():
         for i, data in tqdm(enumerate(testloader), total=len(testloader)):
             counter += 1
@@ -102,15 +103,16 @@ def validate(model, testloader, criterion):
             # Calculate the accuracy.
             _, preds = torch.max(outputs.data, 1)
             valid_running_correct += (preds == labels).sum().item()
-
-        # Save best model based on validation accuracy
-        if valid_acc > best_valid_acc:
-            torch.save(model.state_dict(), 'model.pt')
-            best_valid_acc = valid_acc
      
     # Loss and accuracy for the complete epoch.
     epoch_loss = valid_running_loss / counter
     epoch_acc = valid_running_correct / len(testloader.dataset)
+
+    # Save best model based on validation accuracy
+    if epoch_acc > best_valid_acc:
+        torch.save(model.state_dict(), 'model.pt')
+        best_valid_acc = epoch_acc
+
     return epoch_loss, epoch_acc
 
 
@@ -187,7 +189,7 @@ if __name__ == '__main__':
     print(f"[INFO]: Number of test images: {len(dataset_test)}")
     print(f"[INFO]: Class names: {dataset_classes}\n")
     # Load the training and validation data loaders.
-    train_loader, valid_loader, test_loader = get_data_loaders(dataset_train, dataset_valid)
+    train_loader, valid_loader, test_loader = get_data_loaders(dataset_train, dataset_valid, dataset_test)
     # Learning_parameters. 
     lr = args['learning_rate']
     epochs = args['epochs']
@@ -223,10 +225,10 @@ if __name__ == '__main__':
                                                     criterion)
         
         # Write loss and accuracy to Tensorboard
-        writer.add_scalar('Loss/train', train_loss, epoch)
-        writer.add_scalar('Accuracy/train', train_acc, epoch)
-        writer.add_scalar('Loss/valid', valid_loss, epoch)
-        writer.add_scalar('Accuracy/valid', valid_acc, epoch)
+        writer.add_scalar('Loss/train', train_epoch_loss, epoch)
+        writer.add_scalar('Accuracy/train', train_epoch_acc, epoch)
+        writer.add_scalar('Loss/valid', valid_epoch_loss, epoch)
+        writer.add_scalar('Accuracy/valid', valid_epoch_acc, epoch)
       
         train_loss.append(train_epoch_loss)
         valid_loss.append(valid_epoch_loss)
