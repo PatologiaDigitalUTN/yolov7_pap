@@ -19,7 +19,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 import os
 
 
-def main(lr, epochs, batch_size,pretrained, model_name, dataset_path, dest_path):
+def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path):
     """Main training function. Trains the model and saves the best epoch."""
     # Create output folder
     dir_name = f'{os.path.basename(dataset_path)}_{model_name}'
@@ -29,9 +29,9 @@ def main(lr, epochs, batch_size,pretrained, model_name, dataset_path, dest_path)
     # Define Tensorboard writer
     writer = SummaryWriter(dest_path)
     # Add hyperparameters to Tensorboard
-    hparams = f'Epochs: {epochs} \nLearning rate: {lr} \
-    \nBatch_size: {batch_size} \
-    \nPretrained: {pretrained}\nModel name: {model_name}'
+    hparams = f'Epochs: {epochs}\nLearning rate: {lr}\n' \
+    f'Batch_size: {batch_size}\n' \
+    f'Pretrained: {pretrained}\nModel name: {model_name}'
     writer.add_text('Main Info', hparams)
 
     # Load the training and validation datasets.
@@ -68,8 +68,7 @@ def main(lr, epochs, batch_size,pretrained, model_name, dataset_path, dest_path)
     for epoch in range(epochs):
         print(f"[INFO]: Epoch {epoch+1} of {epochs}")
         train_epoch_loss, train_epoch_acc = train(model, train_loader, 
-                                                optimizer, criterion, device,
-                                                dest_path)
+                                                optimizer, criterion, device)
         valid_epoch_loss, valid_epoch_acc = validate(model, valid_loader,  
                                                     criterion, device,
                                                     dest_path)
@@ -86,7 +85,7 @@ def main(lr, epochs, batch_size,pretrained, model_name, dataset_path, dest_path)
         time.sleep(5)
     
     test_loss, test_acc, predictions, targets = test(model, test_loader,  
-                                criterion, device)
+                                criterion, device, dest_path)
     
     # Write loss and accuracy to Tensorboard
     writer.add_scalar('Loss/test', test_loss)
@@ -95,7 +94,7 @@ def main(lr, epochs, batch_size,pretrained, model_name, dataset_path, dest_path)
     print(f'Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}')
 
     # Create matrix and classification report and add it to Tensorboard
-    conf_matrix_report(predictions, targets, writer, dataset_train, save_files=False)     
+    conf_matrix_report(predictions, targets, writer, dataset_train)     
     # Save the trained model weights.
     save_model(epochs, model, optimizer, criterion, dest_path)
 
@@ -227,4 +226,4 @@ if __name__ == '__main__':
     model_name = 'TBA'
     dataset_path = '/shared/PatoUTN/PAP/Datasets/cells'
     dest_path = '/shared/PatoUTN/PAP/Entrenamientos'
-    main()
+    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, dest_path)
