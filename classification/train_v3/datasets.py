@@ -95,8 +95,10 @@ def get_data_loaders(dataset_train, dataset_valid, dataset_test, BATCH_SIZE):
         dataset_valid, batch_size=BATCH_SIZE, 
         shuffle=False, num_workers=NUM_WORKERS
     )
+    # Batch size for the test dataset is 1 so the test function can
+    # retrieve the filename of missclasified images
     test_loader = DataLoader(
-        dataset_test, batch_size=BATCH_SIZE, 
+        dataset_test, batch_size=1, 
         shuffle=False, num_workers=NUM_WORKERS
     )
     return train_loader, valid_loader, test_loader

@@ -85,12 +85,13 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
         print('-'*50)
         time.sleep(5)
     
-    test_loss, test_acc, predictions, targets = test(model, test_loader,  
+    test_loss, test_acc, predictions, targets, paths = test(model, test_loader,  
                                 criterion, device, dest_path)
     
     # Write loss and accuracy to Tensorboard
     writer.add_scalar('Loss/test', test_loss)
     writer.add_scalar('Accuracy/test', test_acc)
+    writer.add_text('Missclassified paths', paths)
 
     print(f'Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}')
 
@@ -190,16 +191,17 @@ def test(model, testloader, criterion, device, dest_path):
     counter = 0
     predictions = []
     targets = []
+    probando = 0
+    paths = ''
 
     with torch.no_grad():
-        for i, data in tqdm(enumerate(testloader), total=len(testloader)):
-            counter += 1
-            image, labels = data
-            image = image.to(device)
+        for i, (images, labels) in enumerate(testloader, 0):
+            images = images.to(device)
             labels = labels.to(device)
+            counter += 1
 
             # Forward pass
-            outputs = model(image)
+            outputs = model(images)
 
             # Calculate the loss.
             loss = criterion(outputs, labels)
@@ -212,15 +214,21 @@ def test(model, testloader, criterion, device, dest_path):
             # Append predictions and targets for classification report and confusion matrix
             predictions.append(preds)
             targets.append(labels)
-    
+
+            # Path list of missclassified images
+            if preds != labels and probando<=5:
+                probando +=1
+                filename, _ = testloader.dataset.samples[i]
+                paths += f'{filename}, {preds.item()}\n'
+               
     # Loss and accuracy for the complete epoch.
     epoch_loss = test_running_loss / counter
     epoch_acc = test_running_correct / len(testloader.dataset)
-    return epoch_loss, epoch_acc, predictions, targets
+    return epoch_loss, epoch_acc, predictions, targets, paths
 
 
 if __name__ == '__main__':
-    epochs = 30
+    epochs = 5
     lr = 0.001
     batch_size = 16
     pretrained = True
