@@ -19,10 +19,10 @@ from sklearn.metrics import confusion_matrix, classification_report
 import os
 
 
-def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path):
+def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path, fine_tune, label):
     """Main training function. Trains the model and saves the best epoch."""
     # Create output folder
-    dir_name = f'{os.path.basename(dataset_path)}_{model_name}'
+    dir_name = f'{os.path.basename(dataset_path)}_{model_name}_{label}'
     os.mkdir(os.path.join(dest_path, dir_name))
     dest_path = os.path.join(dest_path, dir_name)   
 
@@ -48,8 +48,9 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path)
     print(f"Learning rate: {lr}")
     print(f"Epochs to train for: {epochs}\n")
     model = build_model(
+        model=model_name,
         pretrained=pretrained, 
-        fine_tune=True, 
+        fine_tune=fine_tune, 
         num_classes=len(dataset_classes)
     ).to(device)
     
@@ -223,7 +224,9 @@ if __name__ == '__main__':
     lr = 0.001
     batch_size = 16
     pretrained = True
-    model_name = 'TBA'
+    model_name = 'resnet18'
+    fine_tune = True
+    label = 'unfrozen'
     dataset_path = '/shared/PatoUTN/PAP/Datasets/cells'
     dest_path = '/shared/PatoUTN/PAP/Entrenamientos'
-    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, dest_path)
+    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, dest_path, fine_tune, label)
