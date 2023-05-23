@@ -21,6 +21,7 @@ def save_model(epochs, model, optimizer, criterion, dest_path):
                 }, f"{dest_path}/{os.path.basename(dest_path)}.pth")
 
 
+
 def save_plots(train_acc, valid_acc, train_loss, valid_loss, pretrained):
     """
     Function to save the loss and accuracy plots to disk.
@@ -117,3 +118,4 @@ def missclasiffied_subclasses(miss_paths, writer):
     plt.ylabel('Count')
 
     writer.add_figure('Altered images classified as normal', fig)
+    

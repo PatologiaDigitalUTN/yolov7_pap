@@ -160,7 +160,6 @@ def train(model, trainloader, optimizer, criterion, device):
     # Loss and accuracy for the complete epoch.
     epoch_loss = train_running_loss / counter
     epoch_acc = train_running_correct / len(trainloader.dataset)
-
     return epoch_loss, epoch_acc
 
 
@@ -172,6 +171,7 @@ def validate(model, testloader, criterion, device, dest_path):
     valid_running_loss = 0.0
     counter = 0
     best_valid_acc = 0
+
     with torch.no_grad():
         for i, data in tqdm(enumerate(testloader), total=len(testloader)):
             counter += 1

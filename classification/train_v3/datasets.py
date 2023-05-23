@@ -80,7 +80,6 @@ def get_datasets(pretrained, ROOT_DIR):
 
 
 def get_data_loaders(dataset_train, dataset_valid, dataset_test, BATCH_SIZE):
-    
     """
     Prepares the training and validation data loaders.
     :param dataset_train: The training dataset.
