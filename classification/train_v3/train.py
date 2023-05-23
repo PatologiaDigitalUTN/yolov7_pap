@@ -19,10 +19,14 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 
 
-def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path, fine_tune, label, use_weight_balance):
+def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
+          fine_tune, label, use_weight_balance):
     """Main training function. Trains the model and saves the best epoch."""
     # Create output folder
-    dir_name = f'{os.path.basename(dataset_path)}_{model_name}_{label}'
+    if label == '':
+        dir_name = f'{os.path.basename(dataset_path)}_{model_name}'
+    else:
+        dir_name = f'{os.path.basename(dataset_path)}_{model_name}_{label}'
     os.mkdir(os.path.join(dest_path, dir_name))
     dest_path = os.path.join(dest_path, dir_name)   
 
@@ -41,7 +45,10 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
     print(f"[INFO]: Number of test images: {len(dataset_test)}")
     print(f"[INFO]: Class names: {dataset_classes}\n")
     # Load the training and validation data loaders.
-    train_loader, valid_loader, test_loader = get_data_loaders(dataset_train, dataset_valid, dataset_test, batch_size)
+    train_loader, valid_loader, test_loader = get_data_loaders(dataset_train, 
+                                                               dataset_valid,
+                                                               dataset_test,
+                                                               batch_size)
     # Learning_parameters.
     device = ('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Computation device: {device}")
@@ -81,7 +88,8 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
     for epoch in range(epochs):
         print(f"[INFO]: Epoch {epoch+1} of {epochs}")
         train_epoch_loss, train_epoch_acc = train(model, train_loader, 
-                                                optimizer, criterion, device, writer)
+                                                optimizer, criterion,
+                                                device, writer)
         valid_epoch_loss, valid_epoch_acc = validate(model, valid_loader,  
                                                     criterion, device,
                                                     dest_path, writer)
@@ -97,7 +105,8 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
         print('-'*50)
         time.sleep(5)
     
-    test_loss, test_acc, predictions, targets, miss_paths = test(model, test_loader,  
+    test_loss, test_acc, predictions, targets, miss_paths = test(model, 
+                                                                 test_loader,  
                                 criterion, device, dest_path, dataset_classes)
     
     # Write loss and accuracy to Tensorboard
@@ -183,7 +192,8 @@ def validate(model, testloader, criterion, device, dest_path, writer):
             loss = criterion(outputs, labels)
             epoch_running_loss += loss.item()
             valid_running_loss += loss.item() * i.size(0)
-            writer.add_scalar("Validation/Running Loss", valid_running_loss, counter)
+            writer.add_scalar("Validation/Running Loss", valid_running_loss,
+                              counter)
 
             # Calculate the accuracy.
             _, preds = torch.max(outputs.data, 1)
@@ -212,8 +222,6 @@ def test(model, testloader, criterion, device, dest_path, dataset_classes):
     counter = 0
     predictions = []
     targets = []
-    probando = 0
-    paths = ''
     miss_paths = pd.DataFrame(columns=['True', 'Path'])
 
     with torch.no_grad():
@@ -234,7 +242,8 @@ def test(model, testloader, criterion, device, dest_path, dataset_classes):
             _, preds = torch.max(outputs.data, 1)
             epoch_running_correct += (preds == labels).sum().item()
 
-            # Append predictions and targets for classification report and confusion matrix
+            # Append predictions and targets for classification report 
+            # and confusion matrix
             predictions.append(preds)
             targets.append(labels)
 
@@ -244,8 +253,7 @@ def test(model, testloader, criterion, device, dest_path, dataset_classes):
                 filename, _ = testloader.dataset.samples[i]
                 true_class = dataset_classes[labels.item()]
                 new_row = {'True': true_class, 'Path': filename}
-                miss_paths.loc[len(miss_paths)] = new_row
-                
+                miss_paths.loc[len(miss_paths)] = new_row               
                
     # Loss and accuracy for the complete epoch.
     epoch_loss = epoch_running_loss / counter
@@ -260,8 +268,9 @@ if __name__ == '__main__':
     pretrained = True
     model_name = 'resnet18'
     fine_tune = True
-    label = 'unfrozen'
+    label = ''
     dataset_path = '/shared/PatoUTN/PAP/Datasets/cells_2_class_balanced'
     dest_path = '/shared/PatoUTN/PAP/Entrenamientos'
     use_weight_balance = True
-    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, dest_path, fine_tune, label, use_weight_balance)
+    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, 
+         dest_path, fine_tune, label, use_weight_balance)

@@ -56,14 +56,20 @@ def save_plots(train_acc, valid_acc, train_loss, valid_loss, pretrained):
     plt.savefig(f"../outputs/loss_pretrained_{pretrained}.png")
 
 
-def conf_matrix_report(predictions, targets, writer, train_dataset, dest_path=None):
-    "Creates a confussion matrix and a report of the classification. Adds it to Tensorboard"
+def conf_matrix_report(predictions, targets, writer, train_dataset, 
+                       dest_path=None):
+    """Creates a confussion matrix and a report of the classification. 
+    Adds it to Tensorboard"""
     predictions = torch.cat(predictions, dim=0)
     targets = torch.cat(targets, dim=0)
-    conf_matrix = confusion_matrix(targets.cpu().numpy(), predictions.cpu().numpy())
+    conf_matrix = confusion_matrix(targets.cpu().numpy(),
+                                   predictions.cpu().numpy())
 
-    df_cm = DataFrame(conf_matrix , index=train_dataset.class_to_idx, columns=train_dataset.class_to_idx)
-    class_report = classification_report(targets.cpu().numpy(), predictions.cpu().numpy(), target_names=train_dataset.class_to_idx)
+    df_cm = DataFrame(conf_matrix , index=train_dataset.class_to_idx,
+                      columns=train_dataset.class_to_idx)
+    class_report = classification_report(targets.cpu().numpy(),
+                                         predictions.cpu().numpy(),
+                                         target_names=train_dataset.class_to_idx)
     print(f'Confusion matrix:\n{conf_matrix}')
     print(f'Classification report:\n{class_report}')
 
@@ -79,7 +85,8 @@ def conf_matrix_report(predictions, targets, writer, train_dataset, dest_path=No
 
     if dest_path is not None:
         # save conf matrix
-        plt.savefig(os.path.join(dest_path, 'confusion_matrix.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(dest_path, 'confusion_matrix.png'),
+                    dpi=300, bbox_inches='tight')
         # save class report
         with open(os.path.join(dest_path, 'classification_report.txt'), 'w') as f:
             f.write(class_report)
@@ -88,10 +95,12 @@ def conf_matrix_report(predictions, targets, writer, train_dataset, dest_path=No
 def missclasiffied_subclasses(miss_paths, writer):
     """For Bethesda Pap dataset only"""
     # writer.add_text('All test cells json', miss_paths.to_json(orient="records"))
-    writer.add_text('[TEST] Results', miss_paths.to_string(justify='center', index=False, col_space=100))
+    writer.add_text('[TEST] Results', miss_paths.to_string(justify='center',
+                                                           index=False,
+                                                           col_space=100))
 
-    normal_miss = miss_paths[miss_paths['True'] == 'Normal'] # vamos a usarlo para algo? ya tenemos esta info en la matriz de confusión, no?
-    writer.add_text('[TEST] Normal missclassified', normal_miss.to_string(justify='center', index=False, col_space=100))
+    normal_miss = miss_paths[miss_paths['True'] == 'Normal'] 
+    writer.add_text('[TEST] Normal missclassified',normal_miss.to_string(justify='center', index=False, col_space=100))
 
     altered_miss = miss_paths[miss_paths['True'] == 'Altered'].rename(columns={"Path": "Subclass"})
     writer.add_text('[TEST] Alter missclassified', altered_miss.to_string(justify='center', index=False, col_space=100))
