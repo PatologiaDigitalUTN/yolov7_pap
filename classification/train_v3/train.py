@@ -12,14 +12,14 @@ import time
 from tqdm.auto import tqdm
 from model import build_model
 from datasets import get_datasets, get_data_loaders
-from utils import save_model, conf_matrix_report
+from utils import save_model, conf_matrix_report, missclasiffied_subclasses
+import pandas as pd
 
 from torch.utils.tensorboard import SummaryWriter
-from sklearn.metrics import confusion_matrix, classification_report
 import os
 
 
-def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path, fine_tune, label):
+def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path, fine_tune, label, use_weight_balance):
     """Main training function. Trains the model and saves the best epoch."""
     # Create output folder
     dir_name = f'{os.path.basename(dataset_path)}_{model_name}_{label}'
@@ -63,6 +63,18 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
     # Optimizer.
     optimizer = optim.Adam(model.parameters(), lr=lr)
     # Loss function.
+    if use_weight_balance:
+        class_counts = torch.zeros(len(dataset_classes))
+        for item in dataset_train.targets:
+            class_counts[item] += 1
+
+        class_weights = 1 - (class_counts / len(dataset_train.targets))
+        class_weights = class_weights.to(device)
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+    else:
+        criterion = nn.CrossEntropyLoss()
+
+
     criterion = nn.CrossEntropyLoss()
 
     # Start the training.
@@ -85,18 +97,19 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
         print('-'*50)
         time.sleep(5)
     
-    test_loss, test_acc, predictions, targets, paths = test(model, test_loader,  
-                                criterion, device, dest_path)
+    test_loss, test_acc, predictions, targets, miss_paths = test(model, test_loader,  
+                                criterion, device, dest_path, dataset_classes)
     
     # Write loss and accuracy to Tensorboard
     writer.add_scalar('Loss/test', test_loss)
     writer.add_scalar('Accuracy/test', test_acc)
-    writer.add_text('Missclassified paths', paths)
 
     print(f'Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}')
 
     # Create matrix and classification report and add it to Tensorboard
-    conf_matrix_report(predictions, targets, writer, dataset_train)     
+    conf_matrix_report(predictions, targets, writer, dataset_train)
+    # Save missclasified images data
+    missclasiffied_subclasses(miss_paths, writer)
     # Save the trained model weights.
     save_model(epochs, model, optimizer, criterion, dest_path)
 
@@ -182,7 +195,7 @@ def validate(model, testloader, criterion, device, dest_path):
 
 
 # Test function.
-def test(model, testloader, criterion, device, dest_path):
+def test(model, testloader, criterion, device, dest_path, dataset_classes):
     model.load_state_dict(torch.load(os.path.join(dest_path, 'model.pt')))
     model.eval()
     print('Test')
@@ -193,6 +206,7 @@ def test(model, testloader, criterion, device, dest_path):
     targets = []
     probando = 0
     paths = ''
+    miss_paths = pd.DataFrame(columns=['True', 'Path'])
 
     with torch.no_grad():
         for i, (images, labels) in enumerate(testloader, 0):
@@ -215,26 +229,30 @@ def test(model, testloader, criterion, device, dest_path):
             predictions.append(preds)
             targets.append(labels)
 
-            # Path list of missclassified images
-            if preds != labels and probando<=5:
+            # Fill dataframe with missclassified images paths
+            if testloader.batch_size == 1 and preds != labels:
                 probando +=1
                 filename, _ = testloader.dataset.samples[i]
-                paths += f'{filename}, {preds.item()}\n'
+                true_class = dataset_classes[labels.item()]
+                new_row = {'True': true_class, 'Path': filename}
+                miss_paths.loc[len(miss_paths)] = new_row
+                
                
     # Loss and accuracy for the complete epoch.
     epoch_loss = test_running_loss / counter
     epoch_acc = test_running_correct / len(testloader.dataset)
-    return epoch_loss, epoch_acc, predictions, targets, paths
+    return epoch_loss, epoch_acc, predictions, targets, miss_paths
 
 
 if __name__ == '__main__':
-    epochs = 5
+    epochs = 1
     lr = 0.001
     batch_size = 16
     pretrained = True
     model_name = 'resnet18'
     fine_tune = True
     label = 'unfrozen'
-    dataset_path = '/shared/PatoUTN/PAP/Datasets/cells'
+    dataset_path = '/shared/PatoUTN/PAP/Datasets/cells_2_class_balanced'
     dest_path = '/shared/PatoUTN/PAP/Entrenamientos'
-    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, dest_path, fine_tune, label)
+    use_weight_balance = True
+    main(epochs, lr, batch_size, pretrained, model_name, dataset_path, dest_path, fine_tune, label, use_weight_balance)
