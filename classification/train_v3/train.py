@@ -81,10 +81,10 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
     for epoch in range(epochs):
         print(f"[INFO]: Epoch {epoch+1} of {epochs}")
         train_epoch_loss, train_epoch_acc = train(model, train_loader, 
-                                                optimizer, criterion, device)
+                                                optimizer, criterion, device, writer)
         valid_epoch_loss, valid_epoch_acc = validate(model, valid_loader,  
                                                     criterion, device,
-                                                    dest_path)
+                                                    dest_path, writer)
         
         # Write loss and accuracy to Tensorboard
         writer.add_scalar('Loss/train', train_epoch_loss, epoch)
@@ -117,11 +117,12 @@ def main(epochs, lr, batch_size,pretrained, model_name, dataset_path, dest_path,
 
 
 # Training function.
-def train(model, trainloader, optimizer, criterion, device):
+def train(model, trainloader, optimizer, criterion, device, writer):
     model.train()
     print('Training')
+    epoch_running_loss = 0.0
+    epoch_running_correct = 0
     train_running_loss = 0.0
-    train_running_correct = 0
     counter = 0
 
     for i, data in tqdm(enumerate(trainloader), total=len(trainloader)):
@@ -136,7 +137,10 @@ def train(model, trainloader, optimizer, criterion, device):
 
         # Calculate the loss.
         loss = criterion(outputs, labels)
-        train_running_loss += loss.item()
+        epoch_running_loss += loss.item()
+        
+        train_running_loss += loss.item() * i.size(0)
+        writer.add_scalar("Train/Running Loss", train_running_loss, counter)
 
         # Backpropagation
         loss.backward()
@@ -146,21 +150,22 @@ def train(model, trainloader, optimizer, criterion, device):
 
         # Calculate the accuracy.
         _, preds = torch.max(outputs.data, 1)
-        train_running_correct += (preds == labels).sum().item()
+        epoch_running_correct += (preds == labels).sum().item()
     
     # Loss and accuracy for the complete epoch.
-    epoch_loss = train_running_loss / counter
-    epoch_acc = train_running_correct / len(trainloader.dataset)
+    epoch_loss = epoch_running_loss / counter
+    epoch_acc = epoch_running_correct / len(trainloader.dataset)
 
     return epoch_loss, epoch_acc
 
 
 # Validation function.
-def validate(model, testloader, criterion, device, dest_path):
+def validate(model, testloader, criterion, device, dest_path, writer):
     model.eval()
     print('Validation')
+    epoch_running_loss = 0.0
+    epoch_running_correct = 0
     valid_running_loss = 0.0
-    valid_running_correct = 0
     counter = 0
     best_valid_acc = 0
     with torch.no_grad():
@@ -176,15 +181,17 @@ def validate(model, testloader, criterion, device, dest_path):
 
             # Calculate the loss.
             loss = criterion(outputs, labels)
-            valid_running_loss += loss.item()
+            epoch_running_loss += loss.item()
+            valid_running_loss += loss.item() * i.size(0)
+            writer.add_scalar("Validation/Running Loss", valid_running_loss, counter)
 
             # Calculate the accuracy.
             _, preds = torch.max(outputs.data, 1)
-            valid_running_correct += (preds == labels).sum().item()
+            epoch_running_correct += (preds == labels).sum().item()
      
     # Loss and accuracy for the complete epoch.
-    epoch_loss = valid_running_loss / counter
-    epoch_acc = valid_running_correct / len(testloader.dataset)
+    epoch_loss = epoch_running_loss / counter
+    epoch_acc = epoch_running_correct / len(testloader.dataset)
 
     # Save best model based on validation accuracy
     if epoch_acc > best_valid_acc:
@@ -199,8 +206,9 @@ def test(model, testloader, criterion, device, dest_path, dataset_classes):
     model.load_state_dict(torch.load(os.path.join(dest_path, 'model.pt')))
     model.eval()
     print('Test')
-    test_running_loss = 0.0
-    test_running_correct = 0
+   
+    epoch_running_correct = 0
+    epoch_running_loss = 0.0
     counter = 0
     predictions = []
     targets = []
@@ -219,11 +227,12 @@ def test(model, testloader, criterion, device, dest_path, dataset_classes):
 
             # Calculate the loss.
             loss = criterion(outputs, labels)
-            test_running_loss += loss.item()
+            epoch_running_loss += loss.item()
+            
 
             # Calculate the accuracy.
             _, preds = torch.max(outputs.data, 1)
-            test_running_correct += (preds == labels).sum().item()
+            epoch_running_correct += (preds == labels).sum().item()
 
             # Append predictions and targets for classification report and confusion matrix
             predictions.append(preds)
@@ -239,8 +248,8 @@ def test(model, testloader, criterion, device, dest_path, dataset_classes):
                 
                
     # Loss and accuracy for the complete epoch.
-    epoch_loss = test_running_loss / counter
-    epoch_acc = test_running_correct / len(testloader.dataset)
+    epoch_loss = epoch_running_loss / counter
+    epoch_acc = epoch_running_correct / len(testloader.dataset)
     return epoch_loss, epoch_acc, predictions, targets, miss_paths
 
 
