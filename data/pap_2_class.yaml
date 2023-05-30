@@ -1,0 +1,12 @@
+# PAP CRIC Dataset 2 classes
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: /shared/PatoUTN/PAP/Datasets/originales/2/yolo/train 
+val: /shared/PatoUTN/PAP/Datasets/originales/2/yolo/val 
+test: /shared/PatoUTN/PAP/Datasets/originales/2/yolo/test  
+
+# number of classes
+nc: 2
+
+# class names
+names: [ 'Normal', 'Altered' ]
