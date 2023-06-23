@@ -896,13 +896,14 @@ def translate_coordinates(center, det, pw=640, ph=640):
     # Inputs: Center of the patch, detections for the patch, patch width and height 
     # Returns detection with modified coordinates from relative to the patch to global (relative to full size img)
 
-    gscx, gscy, gicx, gicy = xywh2xyxy(*center, pw, ph)
+    gscx = center[0] - pw/2
+    gscy = center[1] - ph/2
 
-    
-    for bbscx, bbscy, bbicx, bbicy, conf, cls in reversed(det):
-        detcp = bbscx + gscx, bbscy + gscy, bbicx + gscx,  bbicy + gscy , conf, cls
+    detcp = []
+    for bbscx, bbscy, bbicx, bbicy, conf, cls in det:
+        detcp.append([bbscx + gscx, bbscy + gscy, bbicx + gscx,  bbicy + gscy , conf, cls])
         
-    return reversed(detcp)
+    return detcp
 
 
 
