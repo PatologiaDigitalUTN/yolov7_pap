@@ -10,12 +10,14 @@ from numpy import random
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages, LoadImageFromOpencv
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
+    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, translate_coordinates
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 
-def detect(img, weights, device = 'cpu', imgsz = 640, trace = False, half = False, classify = False, augment = True, conf_thres = 0.25, iou_thres = 0.45):
+def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
+           half = False,classify = False, augment = True, conf_thres = 0.25,
+           iou_thres = 0.45, patch_center = None, glob_img = None):
     # Initialize
     set_logging()
     device = select_device(device)
@@ -91,6 +93,11 @@ def detect(img, weights, device = 'cpu', imgsz = 640, trace = False, half = Fals
                 n = (det[:, -1] == c).sum()  # detections per class
                 s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
+            # If the image to be detected is a patch, translate the coordinates
+            # to the
+            if patch_center is not None:
+                det = translate_coordinates(patch_center, det, imgsz, imgsz)
+                im0 = glob_img
             # Write results
             for *xyxy, conf, cls in reversed(det):
                 label = f'{names[int(cls)]} {conf:.2f}'
