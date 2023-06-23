@@ -30,10 +30,6 @@ def procesar_imagen():
 
     cv_image = cv2.imdecode(numpy_immage, cv2.IMREAD_COLOR)
 
-    # Get names and colors
-    names = model.module.names if hasattr(model, 'module') else model.names
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
-
     # Check if cv_image resolution is bigger than 640 x 640
     if cv_image.shape[0] > 640 or cv_image.shape[1] > 640:
         patches = extract_overlapped_patches(0.2, cv_image)
