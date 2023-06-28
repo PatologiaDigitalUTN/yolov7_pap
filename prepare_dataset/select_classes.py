@@ -5,8 +5,8 @@ import os
 import shutil
 
 # Get the list of all .txt files in the current directory.
-path_names = 'D:\\PatoUTN\\Datasets\\originales\\2\\subimages'
-path_new = 'D:\\PatoUTN\\Datasets\\originales\\Altered\\subimages'
+path_names = '/shared/PatoUTN/PAP/Datasets/originales/2/yolo_idx_class_all_labeled'
+path_new = '/shared/PatoUTN/PAP/Datasets/originales/altered_only_dataset_martin/subimages'
 
 total = 0
 left = 0
@@ -39,13 +39,18 @@ for split in ['train', 'val', 'test']:
                 words = line.split()            
 
                 # Get the class index from the first word.
-                current_index = words[0]
+                current_index = words[0]              
                 
-                for i in class_indexes:
-                    if current_index == str(i):
+                for i in range(len(class_indexes)):
+                    if current_index == str(class_indexes[i]):
                         contains_objects = True
                         with open(os.path.join(path_new_split, txt_file), 'a+') as fn:
-                            fn.write(line)
+                            # Replace the class old index with a new one that reorders the index
+                            # with the current amount of classes.
+                            words[0] = str(i)
+                            # Join the list of words into a single line.
+                            new_line = ' '.join(words)
+                            fn.write(new_line + "\n")
                         fn.close()
         f.close()
 
