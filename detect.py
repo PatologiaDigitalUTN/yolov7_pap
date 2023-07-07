@@ -1,6 +1,15 @@
 import argparse
 import time
 from pathlib import Path
+import os
+
+# ADDING THESE
+import torch
+import torch.nn as nn
+import logging
+from torch.utils.data import Dataset,DataLoader
+from torchvision import transforms
+from torchvision import models
 
 import cv2
 import torch
@@ -9,14 +18,32 @@ from numpy import random
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
+from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_second_stage_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 
+# Please add mean and standard deviation of 2nd stage classifier's dataset
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
+
+class_names2 = None
+super_class = None                  # The class whose output is not supposed to go to image classifier
+
+def create_model(n_classes,device):
+    model = torch.hub.load('pytorch/vision:v0.6.0','resnext50_32x4d',pretrained=True)
+    n_features = model.fc.in_features
+    model.fc = nn.Sequential(
+        nn.Linear(n_features, n_classes),
+        nn.Softmax(dim=1)
+    )
+    return model.to(device)
+
+
 def detect(save_img=False):
-    source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
+    frame_number = 0
+    source, weights, view_img, save_txt, imgsz, trace, second_classifier = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace, opt.second_classifier
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
@@ -41,11 +68,33 @@ def detect(save_img=False):
     if half:
         model.half()  # to FP16
 
+    class_names1 = model.module.names if hasattr(model, 'module') else model.names
+    print(class_names1)
+
     # Second-stage classifier
-    classify = False
-    if classify:
-        modelc = load_classifier(name='resnet101', n=2)  # initialize
-        modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
+    if second_classifier:
+        # TODO: Provide the list of class names for 2nd model
+        class_names2 = ['Normal', 'Altered']
+
+        print(class_names2)
+
+        # If YOLO is trained for more than one class, then we mention which class is sub_class
+        if len(class_names1)>1:
+            super_class = 1                                 # Index of class that does not have sub-classes, currently for 2 classes
+                                                            # it can be made a list for multiple superclasses
+            sub_class = 0                                   # Index of class that has sub-classes that image classifier will classify
+
+        # If YOLO is trained for just one class of objects, which is to be further classified by image classifier            
+        else:
+            sub_class=0
+            super_class = None
+
+        modelc = create_model(len(class_names2),device)
+        # TODO: Provide the path to load the pre-trained image classifier model .pt file below
+        checkpoint = torch.load('/home/ml/sbhatti/action_detection_data/new_weights/weights_resnext_combined_new.pt')
+
+        modelc.load_state_dict(checkpoint['model_state_dict'])
+        modelc.to(device).eval()  
 
     # Set Dataloader
     vid_path, vid_writer = None, None
@@ -56,9 +105,10 @@ def detect(save_img=False):
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride)
 
-    # Get names and colors
-    names = model.module.names if hasattr(model, 'module') else model.names
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+    if second_classifier:
+        colors = [[random.randint(0, 255) for _ in range(3)] for _ in class_names2]
+    else:
+        colors = [[random.randint(0, 255) for _ in range(3)] for _ in class_names1]
 
     # Run inference
     if device.type != 'cpu':
@@ -68,6 +118,8 @@ def detect(save_img=False):
 
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
+        frame_number+=1
+        original_image = img
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -92,10 +144,12 @@ def detect(save_img=False):
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
         t3 = time_synchronized()
 
-        # Apply Classifier
-        if classify:
-            pred = apply_classifier(pred, modelc, img, im0s)
+        # Apply 2nd stage classifier
+        if second_classifier:
+            if pred[0].nelement()>0:
+                pred = apply_second_stage_classifier(pred, modelc, original_image, device, mean, std)
 
+        all_label = ""
         # Process detections
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
@@ -113,20 +167,41 @@ def detect(save_img=False):
 
                 # Print results
                 for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    n = (det[:, -1] == c).sum()  # detections per class                    
+                    # s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
-                for *xyxy, conf, cls in reversed(det):
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
+                for elements in reversed(det):
+                    xyxy,conf,*cls = elements[:4],elements[4],elements[5:]
+
+                    if save_txt:
                         with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                            f.write(f"Frame number {frame_number}  \n XYXY {xyxy}, conf {conf}, cls {cls}")
 
                     if save_img or view_img:  # Add bbox to image
-                        label = f'{names[int(cls)]} {conf:.2f}'
-                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+                        # If there was no sub_class detection
+                        if len(cls[0])==1:
+                            label = f'{class_names1[int(cls[0].item())]} {conf:.2f}'
+                            plot_one_box(xyxy, im0, label=label, color=colors[int(cls[0].item())], line_thickness=3)
+                            all_label+=label+","
+
+                        # else, we find super class and sub class
+                        else:
+                            all_classes = cls[0].tolist()
+                            # In general.py, we appended a column to every detection 'det' tensor
+                            # If super class exists in the tensor, then we just show its class name
+                            if super_class and super_class in all_classes:
+                                # name_ind = int(sub_classes[sub_class])
+                                label = f'{class_names1[super_class]} {conf:.2f}'
+
+                            # If subclass existed in detection 'det' tensor and superclass didnt
+                            # then we show name of subclass
+                            else:
+                                name_ind = int(all_classes[-1])         # Last element is the sub_class from image classifier
+                                label = f'{class_names2[name_ind]} {conf:.2f}'
+
+                            all_label+=label+","
+                            plot_one_box(xyxy, im0, label=label, color=colors[name_ind], line_thickness=3)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
@@ -183,6 +258,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
+    parser.add_argument('--second-classifier', action='store_true', help='Apply 2nd stage classifier on detected items')
     opt = parser.parse_args()
     print(opt)
     #check_requirements(exclude=('pycocotools', 'thop'))
