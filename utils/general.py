@@ -896,10 +896,10 @@ def apply_classifier(x, model, img, im0):
 
 def apply_second_stage_classifier(x, model, img, device, mean, std):
     ## ONLY IF ONE WANTS TO STORE THE CROPPED OBJECTS, THEN THEY MUST INVERSE NORMALIZE
-    # inv_normalize = transforms.Normalize(
-    # mean = [-m/s for m,s in zip(mean,std)],
-    # std = [1/s for s in std]
-    # )
+    #inv_normalize = torchvision.transforms.Normalize(
+    #mean = [-m/s for m,s in zip(mean,std)],
+    #std = [1/s for s in std]
+    #)
     tensor_transform = torchvision.transforms.Compose([
                                             torchvision.transforms.ToTensor(),
                                             torchvision.transforms.Normalize(mean,std)
@@ -929,8 +929,8 @@ def apply_second_stage_classifier(x, model, img, device, mean, std):
             box = object_tensor.tolist()[:4]
             left,top,right,bottom = box[0],box[1],box[2],box[3]
             cropped_box = image.crop((left,top,right,bottom))
-            # The cropped output needs to be rescaled to Resnext input size
-            rescaled = cropped_box.resize((224,224), Image.ANTIALIAS)
+            # The cropped output needs to be rescaled to model input size
+            rescaled = cropped_box.resize((224,224), Image.LANCZOS)
             rgb_image = rescaled.convert('RGB')
             box_image_list.append(rgb_image)
 
@@ -948,16 +948,16 @@ def apply_second_stage_classifier(x, model, img, device, mean, std):
 
     model=model.eval()
     j=0
-
     with torch.no_grad():
         for inputs in dataloader:
             inputs = inputs.to(device)      
             outputs = model(inputs)
             _, preds = torch.max(outputs,1)
+            print('PREDS', preds.indices)
             # If one wants to store the predicted boxes in a folder, give PATH
-            # for k in range(inputs.shape[0]):
-                # img_tensor_to_PIL = image_transform(inv_normalize(inputs.cpu().data[k]))
-                # img_tensor_to_PIL.save(f"PATH_{i}_{class_names[preds[k].item()]}_{k}.jpg")
+            #for k in range(inputs.shape[0]):
+            #    img_tensor_to_PIL = image_transform(inv_normalize(inputs.cpu().data[k]))
+            #    img_tensor_to_PIL.save(f"Entrenamientos\probando\{i}_{class_names[preds[k].item()]}_{k}.jpg")
 
     k =0
     for i, object_tensor in enumerate(p_predictions):

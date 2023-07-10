@@ -10,6 +10,7 @@ import logging
 from torch.utils.data import Dataset,DataLoader
 from torchvision import transforms
 from torchvision import models
+from classification.train_v3.model import build_model
 
 import cv2
 import torch
@@ -89,11 +90,11 @@ def detect(save_img=False):
             sub_class=0
             super_class = None
 
-        modelc = create_model(len(class_names2),device)
+        modelc = build_model(num_classes=len(class_names2))
         # TODO: Provide the path to load the pre-trained image classifier model .pt file below
-        checkpoint = torch.load('/home/ml/sbhatti/action_detection_data/new_weights/weights_resnext_combined_new.pt')
-
-        modelc.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load('D:\\PatoUTN\\Entrenamientos\\effnetb0_2_clases.pt', map_location='cpu')
+        modelc.load_state_dict(checkpoint)
+        modelc.to(device)
         modelc.to(device).eval()  
 
     # Set Dataloader
@@ -147,8 +148,11 @@ def detect(save_img=False):
         # Apply 2nd stage classifier
         if second_classifier:
             if pred[0].nelement()>0:
+                print('PREDS ANTES DE 2COND STAGE')
+                print(pred)
                 pred = apply_second_stage_classifier(pred, modelc, original_image, device, mean, std)
-
+                print('PRED DESPUES')
+                print(pred)
         all_label = ""
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -172,7 +176,11 @@ def detect(save_img=False):
 
                 # Write results
                 for elements in reversed(det):
+                    print(elements)
+                    print('DETECCIONES')
+                    print(det)
                     xyxy,conf,*cls = elements[:4],elements[4],elements[5:]
+                    print('CLASES', cls)
 
                     if save_txt:
                         with open(txt_path + '.txt', 'a') as f:
@@ -188,6 +196,8 @@ def detect(save_img=False):
                         # else, we find super class and sub class
                         else:
                             all_classes = cls[0].tolist()
+                            print('CLASES', all_classes, 'SUPER', super_class, 'SUBCLASS', sub_class)
+                            
                             # In general.py, we appended a column to every detection 'det' tensor
                             # If super class exists in the tensor, then we just show its class name
                             if super_class and super_class in all_classes:
