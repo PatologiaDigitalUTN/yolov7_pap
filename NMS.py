@@ -3,7 +3,7 @@ import numpy as np
 def non_max_suppression(dets, iou_threshold: float = 0.5) -> np.ndarray:
     ret = []
     predictions = np.array(dets)
-    print(predictions.shape)
+    ipreds = predictions.shape[0]
 
     rows, columns = predictions.shape
 
@@ -30,7 +30,7 @@ def non_max_suppression(dets, iou_threshold: float = 0.5) -> np.ndarray:
             npreds += 1
             ret.append(detection)
 
-    print("Numero de predicciones final: ", npreds)
+    print("Numero de predicciones eliminadas con NMS: ", ipreds - npreds)
     return ret
 
 

@@ -25,7 +25,7 @@ if cv_image.shape[0] > 640 or cv_image.shape[1] > 640:
         
 
 # NMS
-dets = non_max_suppression(dets, 1)
+dets = non_max_suppression(dets,0.2)
 #dets = nms.tolist()
 
 
