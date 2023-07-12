@@ -4,17 +4,19 @@ import torch.nn as nn
 
 def build_model(model = 'efficientnetb0',pretrained=True, fine_tune=True, num_classes=6):
     num_features = 0
+    weights = None
     if pretrained:
         print('[INFO]: Loading pre-trained weights')
+        weights = 'DEFAULT'
     else:
         print('[INFO]: Not loading pre-trained weights')
 
     # Choose model
     if model == 'efficientnetb0':
-        model = models.efficientnet_b0(pretrained=pretrained)
+        model = models.efficientnet_b0(weights=weights)
         num_features = 1280
     elif model == 'resnet18':
-        model = models.resnet18(pretrained=pretrained)
+        model = models.resnet18(weights=weights)
         num_features = 512
     else:
         raise AttributeError('Invalid model name')

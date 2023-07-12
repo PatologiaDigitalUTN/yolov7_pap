@@ -4,13 +4,13 @@ from torch.utils.data import DataLoader, Subset
 import os
 # Required constants.
 
-IMAGE_SIZE = 90 # Image size of resize when applying transforms.
+IMAGE_SIZE = 224 # Image size of resize when applying transforms.
 NUM_WORKERS = 4 # Number of parallel processes for data preparation.
 
 # Training transforms
 def get_train_transform(IMAGE_SIZE, pretrained):
     train_transform = transforms.Compose([
-        #transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         #transforms.RandomHorizontalFlip(p=0.5),
         #transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
         #transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5),
@@ -22,7 +22,7 @@ def get_train_transform(IMAGE_SIZE, pretrained):
 # Validation transforms
 def get_valid_transform(IMAGE_SIZE, pretrained):
     valid_transform = transforms.Compose([
-        #transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor(),
         normalize_transform(pretrained)
     ])
@@ -31,7 +31,7 @@ def get_valid_transform(IMAGE_SIZE, pretrained):
 # Test transforms
 def get_test_transform(IMAGE_SIZE, pretrained):
     test_transform = transforms.Compose([
-        #transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         #transforms.RandomHorizontalFlip(p=0.5),
         #transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
         #transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5),
