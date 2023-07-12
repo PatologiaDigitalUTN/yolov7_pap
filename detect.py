@@ -48,7 +48,7 @@ def detect(save_img=False):
     if classify:
         modelc = load_classifier(name='resnet18', n=2)  # initialize
         #modelc = build_model(model='efficientnetb0', num_classes=2) # usando misma funcion que usamos para entrenar los modelos
-        modelc.load_state_dict(torch.load('D:\\PatoUTN\\Entrenamientos\\resnet18_2_clases.pt', map_location=device))
+        modelc.load_state_dict(torch.load('D:\\PatoUTN\\Entrenamientos\\resnet18_2_clases_resize224.pt', map_location=device))
         modelc.to(device).eval()
 
     # Set Dataloader
@@ -99,6 +99,8 @@ def detect(save_img=False):
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
+            names = ['Altered', 'Normal']
+            colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image

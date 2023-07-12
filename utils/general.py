@@ -878,6 +878,7 @@ def apply_classifier(x, model, img, im0):
             print('CLASS 2DO CLASIF', pred_cls2)
             print('CLASS YOLO', pred_cls1)
             #x[i] = x[i][pred_cls1 == pred_cls2]  # retain matching class detections
+            x[i][:, 5] = pred_cls2
 
     return x
 
