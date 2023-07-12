@@ -75,10 +75,6 @@ def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
     pred = non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=True)
     t3 = time_synchronized()
 
-    # Apply Classifier
-    if classify:
-        pred = apply_classifier(pred, modelc, img, im0s)
-
     # Process detections
     for i, det in enumerate(pred):  # detections per image
         s, im0 = '', im0s 
@@ -99,14 +95,14 @@ def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
                 det = translate_coordinates(patch_center, det, imgsz, imgsz)
                 im0 = glob_img
             # Write results
-            for *xyxy, conf, cls in reversed(det):
-                label = f'{names[int(cls)]} {conf:.2f}'
-                plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+            #for *xyxy, conf, cls in reversed(det):
+            #    label = f'{names[int(cls)]} {conf:.2f}'
+            #    plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
         # Print time (inference + NMS)
         print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
 
-        return im0
+        return det, names, colors
 
         # Stream results
         # if view_img:
