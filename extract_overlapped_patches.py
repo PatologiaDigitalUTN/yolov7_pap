@@ -1,7 +1,7 @@
 import cv2
 
 
-def extract_overlapped_patches(overlap_prop, from_path,
+def extract_overlapped_patches(overlap_prop, img,
                                patch_height=640, patch_width=640, save=False, to_path=''):
     """
     Crop patches of a given image with a specified overlap proportion. The overlap 
@@ -11,8 +11,6 @@ def extract_overlapped_patches(overlap_prop, from_path,
     dict: Key contains a tuple with x and y coordinates of the patch's center, value contains
     a cv2 image of the patch.
     """
-
-    img = cv2.imread(from_path)
 
     h_overlap = int(patch_height * overlap_prop)
     w_overlap = int(patch_width * overlap_prop)
@@ -78,4 +76,5 @@ def calculate_patch_coords(patch_size, img_size, overlap):
 
 
 if __name__ == '__main__':
-    patches = extract_overlapped_patches(0.2, 'YourImage.png')
+    img = cv2.imread('from_path')
+    patches = extract_overlapped_patches(0.2, img)

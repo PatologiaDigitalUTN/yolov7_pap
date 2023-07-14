@@ -894,3 +894,20 @@ def increment_path(path, exist_ok=True, sep=''):
         i = [int(m.groups()[0]) for m in matches if m]  # indices
         n = max(i) + 1 if i else 2  # increment number
         return f"{path}{sep}{n}"  # update path
+
+
+def translate_coordinates(center, det, pw=640, ph=640):
+    # Inputs: Center of the patch, detections for the patch, patch width and height 
+    # Returns detection with modified coordinates from relative to the patch to global (relative to full size img)
+
+    gscx = center[0] - pw/2
+    gscy = center[1] - ph/2
+
+    detcp = []
+    for bbscx, bbscy, bbicx, bbicy, conf, cls in det:
+        detcp.append([bbscx + gscx, bbscy + gscy, bbicx + gscx,  bbicy + gscy , conf, cls])
+        
+    return detcp
+
+
+
