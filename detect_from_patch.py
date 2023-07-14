@@ -9,35 +9,21 @@ from numpy import random
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages, LoadImageFromOpencv
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, translate_coordinates
-from utils.plots import plot_one_box
+from utils.general import check_img_size, non_max_suppression, \
+    scale_coords, set_logging, translate_coordinates
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 
-def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
-           half = False,classify = False, augment = True, conf_thres = 0.25,
-           iou_thres = 0.45, patch_center = None, glob_img = None):
+def detect(img, weights, device ='cpu', imgsz=640, augment=True, conf_thres=0.25,
+           iou_thres=0.45, patch_center=None, glob_img=None):
     # Initialize
     set_logging()
     device = select_device(device)
-    half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
-
-    if trace:
-        model = TracedModel(model, device, opt.img_size)
-
-    if half:
-        model.half()  # to FP16
-
-    # Second-stage classifier
-    if classify:
-        modelc = load_classifier(name='resnet101', n=2)  # initialize
-        modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
@@ -52,7 +38,7 @@ def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
     t0 = time.time()
     img, im0s = LoadImageFromOpencv(img) # problema acá
     img = torch.from_numpy(img).to(device)
-    img = img.half() if half else img.float()  # uint8 to fp16/32
+    img = img.float()  # uint8 to fp16/32
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
@@ -75,10 +61,6 @@ def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
     pred = non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=True)
     t3 = time_synchronized()
 
-    # Apply Classifier
-    if classify:
-        pred = apply_classifier(pred, modelc, img, im0s)
-
     # Process detections
     for i, det in enumerate(pred):  # detections per image
         s, im0 = '', im0s 
@@ -99,14 +81,14 @@ def detect(img, weights, device = 'cpu', imgsz = 640, trace = False,
                 det = translate_coordinates(patch_center, det, imgsz, imgsz)
                 im0 = glob_img
             # Write results
-            for *xyxy, conf, cls in reversed(det):
-                label = f'{names[int(cls)]} {conf:.2f}'
-                plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+            #for *xyxy, conf, cls in reversed(det):
+            #    label = f'{names[int(cls)]} {conf:.2f}'
+            #    plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
         # Print time (inference + NMS)
         print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
 
-        return im0
+        return det
 
         # Stream results
         # if view_img:

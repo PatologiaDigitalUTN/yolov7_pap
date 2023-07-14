@@ -3,11 +3,7 @@ from flask_cors import CORS
 import base64
 import numpy as np
 import cv2
-import sys
-import detectar
-from extract_overlapped_patches import extract_overlapped_patches
-import random
-import model
+from process_inference import process_inference
 
 app = Flask(__name__, template_folder='views')
 CORS(app)
@@ -30,18 +26,9 @@ def procesar_imagen():
 
     cv_image = cv2.imdecode(numpy_immage, cv2.IMREAD_COLOR)
 
-    # Check if cv_image resolution is bigger than 640 x 640
-    if cv_image.shape[0] > 640 or cv_image.shape[1] > 640:
-        patches = extract_overlapped_patches(0.2, cv_image)
-        # Iterate over dict patches
-        for pcenterxy, pimage in patches.items():
-            # Detect cells
-            img = detectar.detect(pimage, 'yolov7.pt',
-                                  patch_center=pcenterxy, glob_img=cv_image)
+    res_img = process_inference(cv_image)  
 
-    
-
-    _, result_base64 = cv2.imencode('.png', img)
+    _, result_base64 = cv2.imencode('.png', res_img)
     result_base64 = base64.b64encode(result_base64).decode()
     result_base64 = f"data:image/png;base64,{result_base64}"
 

@@ -910,4 +910,135 @@ def translate_coordinates(center, det, pw=640, ph=640):
     return detcp
 
 
+def non_max_suppression_patches(dets, iou_threshold: float = 0.5) -> np.ndarray:
+    """
+    Remove duplicate preds from overlapped areas between patches.
+    """
+    ret = []
+    predictions = np.array(dets)
+    ipreds = predictions.shape[0]
 
+    rows, columns = predictions.shape
+
+    sort_index = np.flip(predictions[:, 4].argsort())
+    predictions = predictions[sort_index]
+
+    boxes = predictions[:, :4]
+    categories = predictions[:, 5]
+    ious = box_iou_batch(boxes, boxes)
+    ious = ious - np.eye(rows)
+
+    keep = np.ones(rows, dtype=bool)
+
+    for index, (iou, category) in enumerate(zip(ious, categories)):
+        if not keep[index]:
+            continue
+
+        condition = (iou > iou_threshold) & (categories == category)
+        keep = keep & ~condition
+
+    npreds = 0
+    for index, detection in enumerate(predictions):
+        if keep[index]:
+            npreds += 1
+            ret.append(detection)
+
+    print("Preds removed with NMS: ", ipreds - npreds)
+    return ret
+
+
+def box_iou_batch(
+	boxes_a: np.ndarray, boxes_b: np.ndarray
+) -> np.ndarray:
+
+    def box_area(box):
+        return (box[2] - box[0]) * (box[3] - box[1])
+
+    area_a = box_area(boxes_a.T)
+    area_b = box_area(boxes_b.T)
+
+    top_left = np.maximum(boxes_a[:, None, :2], boxes_b[:, :2])
+    bottom_right = np.minimum(boxes_a[:, None, 2:], boxes_b[:, 2:])
+
+    area_inter = np.prod(
+    	np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
+        
+    return area_inter / (area_a[:, None] + area_b - area_inter)
+
+def extract_overlapped_patches(overlap_prop, img,
+                               patch_height=640, patch_width=640, save=False, to_path=''):
+    """
+    Crop patches of a given image with a specified overlap proportion. The overlap 
+    proportion must be a number between 0 and 1. If the given overlap doesn't make patches 
+    cover the whole image, a bigger one will be used.
+    Returns:
+    dict: Key contains a tuple with x and y coordinates of the patch's center, value contains
+    a cv2 image of the patch.
+    """
+
+    h_overlap = int(patch_height * overlap_prop)
+    w_overlap = int(patch_width * overlap_prop)
+    
+    true_w_overlap = 0
+    true_h_overlap = 0
+
+    img_height, img_width, _ = img.shape
+
+    if overlap_prop < 0 or overlap_prop >= 1:
+        raise ValueError("Overlap proportion must be a number between 0 (inclusive) and 1 (exclusive)")
+    elif img_height < patch_height:
+        raise ValueError("Patch height can't be bigger than image height")
+    elif img_width < patch_width:
+        raise ValueError("Patch width can't be bigger than image width")
+
+    patch_centers_y, true_h_overlap = calculate_patch_coords(patch_height, img_height, h_overlap)
+    patch_centers_x, true_w_overlap = calculate_patch_coords(patch_width, img_width, w_overlap)
+    
+    patches = {}
+    # Create patches
+    for j in range(len(patch_centers_y)):
+        for k in range(len(patch_centers_x)):
+            y_inf = int(patch_centers_y[j] - patch_height / 2)
+            x_inf = int(patch_centers_x[k] - patch_width / 2)
+            patch_img = img[y_inf:y_inf+patch_height, x_inf:x_inf+patch_width]
+
+            # Add patch with its center coordinates to the image
+            patches[(patch_centers_x[k], patch_centers_y[j])] = patch_img
+            
+            if save == True:
+                if to_path == '':
+                    cv2.imwrite(f'patch_{j}_{k}.png', patch_img)
+                else:
+                    cv2.imwrite(to_path + '/' + f'patch_{j}_{k}.png', patch_img)
+
+    return patches
+
+
+def calculate_patch_coords(patch_size, img_size, overlap):
+    cc = [] # Patch center coordinates of a specified axis
+    acum_size = 0
+    i = 0
+    while acum_size < img_size:
+        ci = 0
+        if len(cc) == 0:
+            ci = patch_size / 2
+        else:
+            ci = cc[i-1] + patch_size - overlap
+        cc.append(ci)
+        acum_size = ci + patch_size / 2
+        i += 1
+
+    if acum_size > img_size:
+        size_dif = acum_size - img_size
+        extra_overlap = size_dif / (len(cc)-1)
+        true_overlap = overlap + extra_overlap
+        # Change overlap for one that make patches cover the whole image
+        for j  in range(1, len(cc)):
+            cc[j] = cc[j-1] + patch_size - true_overlap
+
+    return cc, true_overlap
+
+
+if __name__ == '__main__':
+    img = cv2.imread('from_path')
+    patches = extract_overlapped_patches(0.2, img)
