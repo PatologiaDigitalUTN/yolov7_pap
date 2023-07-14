@@ -46,9 +46,8 @@ def detect(save_img=False):
     # Second-stage classifier
     classify = True
     if classify:
-        modelc = load_classifier(name='resnet18', n=2)  # initialize
-        #modelc = build_model(model='efficientnetb0', num_classes=2) # usando misma funcion que usamos para entrenar los modelos
-        modelc.load_state_dict(torch.load('D:\\PatoUTN\\Entrenamientos\\resnet18_2_clases_resize224.pt', map_location=device))
+        modelc = build_model(model='efficientnetb0', num_classes=2) # usando misma funcion que usamos para entrenar los modelos
+        modelc.load_state_dict(torch.load("E:\\MLPathologyProject\\pap\\CRIC\\result\\clasificacion_efficientnetb0_2_clases\\model.pt", map_location=device))
         modelc.to(device).eval()
 
     # Set Dataloader
