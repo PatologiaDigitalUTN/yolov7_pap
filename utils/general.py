@@ -903,11 +903,17 @@ def translate_coordinates(center, det, pw=640, ph=640):
     gscx = center[0] - pw/2
     gscy = center[1] - ph/2
 
-    detcp = []
-    for bbscx, bbscy, bbicx, bbicy, conf, cls in det:
-        detcp.append([bbscx + gscx, bbscy + gscy, bbicx + gscx,  bbicy + gscy , conf, cls])
+    #detcp = []
+    for i, (bbscx, bbscy, bbicx, bbicy, conf, cls) in enumerate(det):
+        det[i][0] = bbscx + gscx
+        det[i][1] = bbscy + gscy
+        det[i][2] = bbicx + gscx
+        det[i][3] = bbicy + gscy
+        det[i][4] = conf
+        det[i][5] = cls
+        #detcp.append([bbscx + gscx, bbscy + gscy, bbicx + gscx,  bbicy + gscy , conf, cls])
         
-    return detcp
+    return det
 
 
 def non_max_suppression_patches(dets, iou_threshold: float = 0.5) -> np.ndarray:

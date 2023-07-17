@@ -69,6 +69,7 @@ def detect(save_img=False):
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
+    c = 0
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
@@ -90,13 +91,17 @@ def detect(save_img=False):
         with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
             pred = model(img, augment=opt.augment)[0]
         t2 = time_synchronized()
-
+        print('Preds en tanda ', c)
+        print(pred)
+        print(pred.shape)
+        c += 1
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
         t3 = time_synchronized()
 
         # Apply Classifier
         if classify:
+            print(pred)
             pred = apply_classifier(pred, modelc, img, im0s)
             names = ['Altered', 'Normal']
             colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
