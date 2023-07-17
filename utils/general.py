@@ -875,8 +875,8 @@ def apply_classifier(x, model, img, im0):
                 ims.append(im)
 
             pred_cls2 = model(torch.Tensor(ims).to(d.device)).argmax(1)  # classifier prediction
-            print('CLASS 2DO CLASIF', pred_cls2)
-            print('CLASS YOLO', pred_cls1)
+            #print('CLASS YOLO', pred_cls1)
+            #print('CLASS 2ND CLASIF', pred_cls2)
             #x[i] = x[i][pred_cls1 == pred_cls2]  # retain matching class detections
             x[i][:, 5] = pred_cls2
 
@@ -948,6 +948,8 @@ def non_max_suppression_patches(dets, iou_threshold: float = 0.5) -> np.ndarray:
         if keep[index]:
             npreds += 1
             ret.append(detection)
+
+    ret = np.array(ret)
 
     print("Preds removed with NMS: ", ipreds - npreds)
     return torch.tensor(ret)

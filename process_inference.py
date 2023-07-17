@@ -3,12 +3,13 @@ import detect_from_patch as detect_from_patch
 import numpy as np
 from utils.plots import plot_one_box
 from utils.general import extract_overlapped_patches, \
-    non_max_suppression_patches, apply_classifier, non_max_suppression
+    non_max_suppression_patches, apply_classifier
 from classification.train_v3.model import build_model
 import torch
 from torchvision import transforms
 from utils.torch_utils import select_device
 import random
+from models.experimental import attempt_load
 
 
 def process_inference(cv_image):
@@ -17,6 +18,8 @@ def process_inference(cv_image):
 
     device = select_device('cpu')
 
+    model = attempt_load('cellv1.pt', map_location=device)  # load FP32 model
+
     # Check if cv_image resolution is bigger than 640 x 640
     if cv_image.shape[0] > 640 or cv_image.shape[1] > 640:
         patches = extract_overlapped_patches(0.1, cv_image)
@@ -24,12 +27,9 @@ def process_inference(cv_image):
         # Iterate over dict patches
         for pcenterxy, pimage in patches.items():
             # Detect cells
-            dets = torch.cat((dets, detect_from_patch.detect(pimage, 'cellv1.pt',
-                                    patch_center=pcenterxy, glob_img=cv_image)), 0)
-            if(c == 0):
-                print('Primer dets')
-                print(dets)
-            c += 1
+            dets = torch.cat((dets, detect_from_patch.detect(pimage, model, 
+                                    device, patch_center=pcenterxy,
+                                    glob_img=cv_image)), 0)
 
     # Apply NMS to remove duplicate deteccions from cells in overlapped areas
     dets = non_max_suppression_patches(dets, 0.2)
@@ -60,6 +60,7 @@ def process_inference(cv_image):
         label = f'{names[int(cls)]} {conf:.2f}'
         plot_one_box(xyxy, cv_image, label=label, color=colors[int(cls)], line_thickness=1)
 
-
     # Save image
-    cv2.imwrite("E:\\MLPathologyProject\\pap\\CRIC\\yolo_modelos\\probando.png", cv_image)
+    #cv2.imwrite("E:\\MLPathologyProject\\pap\\CRIC\\yolo_modelos\\probando.png", cv_image)
+
+    return cv_image

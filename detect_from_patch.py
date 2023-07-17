@@ -7,27 +7,22 @@ import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
 
-from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages, LoadImageFromOpencv
 from utils.general import check_img_size, non_max_suppression, \
     scale_coords, set_logging, translate_coordinates
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 
-def detect(img, weights, device ='cpu', imgsz=640, augment=True, conf_thres=0.25,
+def detect(img, model, device='cpu', imgsz=640, augment=True, conf_thres=0.25,
            iou_thres=0.45, patch_center=None, glob_img=None):
     # Initialize
     set_logging()
-    device = select_device(device)
 
-    # Load model
-    model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
     # Run inference
     if device.type != 'cpu':

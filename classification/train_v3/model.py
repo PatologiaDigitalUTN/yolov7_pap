@@ -11,10 +11,10 @@ def build_model(model = 'efficientnetb0',pretrained=True, fine_tune=True, num_cl
 
     # Choose model
     if model == 'efficientnetb0':
-        model = models.efficientnet_b0(pretrained=pretrained)
+        model = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT)
         num_features = 1280
     elif model == 'resnet18':
-        model = models.resnet18(pretrained=pretrained)
+        model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         num_features = 512
     else:
         raise AttributeError('Invalid model name')
