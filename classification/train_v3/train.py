@@ -257,7 +257,7 @@ if __name__ == '__main__':
     lr = 0.001
     batch_size = 16
     pretrained = True
-    model_name = 'resnet18'
+    model_name = 'efficientnetb0'
     fine_tune = True
     label = '2_clases'
     dataset_path = '/shared/PatoUTN/PAP/Datasets/originales/2/clasificacion'
