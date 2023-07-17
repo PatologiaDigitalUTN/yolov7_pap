@@ -950,7 +950,7 @@ def non_max_suppression_patches(dets, iou_threshold: float = 0.5) -> np.ndarray:
             ret.append(detection)
 
     print("Preds removed with NMS: ", ipreds - npreds)
-    return ret
+    return torch.tensor(ret)
 
 
 def box_iou_batch(

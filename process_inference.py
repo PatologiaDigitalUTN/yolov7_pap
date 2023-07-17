@@ -15,9 +15,6 @@ def process_inference(cv_image):
     im0 = cv_image.copy()
     dets = torch.tensor([])
 
-    names = ['Cell']
-    colors = [1]
-
     device = select_device('cpu')
 
     # Check if cv_image resolution is bigger than 640 x 640
@@ -35,10 +32,8 @@ def process_inference(cv_image):
             c += 1
 
     # Apply NMS to remove duplicate deteccions from cells in overlapped areas
-    dets = [dets] # TODO: quitar esto cuando podamos convertir a tensor la funcion nms
-    #dets = non_max_suppression_patches(dets, 0.2)
-    #dets = non_max_suppression(dets, iou_thres=0.2)[0]
-
+    dets = non_max_suppression_patches(dets, 0.2)
+    dets = [dets]
     #dets = nms.tolist()
     
     # Load classifier
@@ -57,7 +52,8 @@ def process_inference(cv_image):
     dets = apply_classifier(dets, modelc, img, im0)[0]
 
     names = ['Altered', 'Normal']
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+    colors = ([255, 0, 255], [255, 0, 0]) # BGR Altered = Magenta, Normal = Blue
+    #colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
     # Write results
     for *xyxy, conf, cls in reversed(dets):
