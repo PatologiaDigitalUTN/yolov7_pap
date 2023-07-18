@@ -25,8 +25,11 @@ def procesar_imagen():
     numpy_immage = np.frombuffer(decoded_image, dtype=np.uint8)
 
     cv_image = cv2.imdecode(numpy_immage, cv2.IMREAD_COLOR)
-
-    res_img = process_inference(cv_image)  
+    weights = "E:\\MLPathologyProject\\pap\\CRIC\\result\\" \
+    "clasificacion_efficientnetb0_2_clases\\model.pt"
+    
+    res_img = process_inference(cv_image, 'cellv1.pt', 'efficientnetb0', 
+                                weights)  
 
     _, result_base64 = cv2.imencode('.png', res_img)
     result_base64 = base64.b64encode(result_base64).decode()

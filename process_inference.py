@@ -1,6 +1,4 @@
-import cv2
 import detect_from_patch as detect_from_patch
-import numpy as np
 from utils.plots import plot_one_box
 from utils.general import extract_overlapped_patches, \
     non_max_suppression_patches, apply_classifier
@@ -8,17 +6,16 @@ from classification.train_v3.model import build_model
 import torch
 from torchvision import transforms
 from utils.torch_utils import select_device
-import random
 from models.experimental import attempt_load
 
 
-def process_inference(cv_image):
+def process_inference(cv_image, yolo_weights_pth, clasif_model, cweights_pth):
     im0 = cv_image.copy()
     dets = torch.tensor([])
 
     device = select_device('cpu')
 
-    model = attempt_load('cellv1.pt', map_location=device)  # load FP32 model
+    model = attempt_load(yolo_weights_pth, map_location=device)  # load FP32 model
 
     # Check if cv_image resolution is bigger than 640 x 640
     if cv_image.shape[0] > 640 or cv_image.shape[1] > 640:
@@ -37,8 +34,8 @@ def process_inference(cv_image):
     #dets = nms.tolist()
     
     # Load classifier
-    modelc = build_model(model='efficientnetb0', num_classes=2) # usando misma funcion que usamos para entrenar los modelos
-    modelc.load_state_dict(torch.load("E:\\MLPathologyProject\\pap\\CRIC\\result\\clasificacion_efficientnetb0_2_clases\\model.pt", map_location=device))
+    modelc = build_model(model=clasif_model, num_classes=2) # usando misma funcion que usamos para entrenar los modelos
+    modelc.load_state_dict(torch.load(cweights_pth, map_location=device))
     modelc.to(device).eval()
 
     transform = transforms.ToTensor()
