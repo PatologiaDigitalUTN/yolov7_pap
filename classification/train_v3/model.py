@@ -7,7 +7,10 @@ def build_model(model = 'efficientnetb0',pretrained=True, fine_tune=True, num_cl
     weights = None
     if pretrained:
         print('[INFO]: Loading pre-trained weights')
-        weights = 'DEFAULT'
+        if model == 'efficientnetb0':
+            weights = models.EfficientNet_B0_Weights.DEFAULT
+        elif model == 'resnet18':
+            weights = models.ResNet18_Weights.DEFAULT
     else:
         print('[INFO]: Not loading pre-trained weights')
 

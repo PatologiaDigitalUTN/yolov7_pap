@@ -14,6 +14,8 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
+from classification.train_v3.model import build_model
+
 
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
@@ -42,10 +44,11 @@ def detect(save_img=False):
         model.half()  # to FP16
 
     # Second-stage classifier
-    classify = False
+    classify = True
     if classify:
-        modelc = load_classifier(name='resnet101', n=2)  # initialize
-        modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
+        modelc = build_model(model='efficientnetb0', num_classes=2) # usando misma funcion que usamos para entrenar los modelos
+        modelc.load_state_dict(torch.load("E:\\MLPathologyProject\\pap\\CRIC\\result\\clasificacion_efficientnetb0_2_clases\\model.pt", map_location=device))
+        modelc.to(device).eval()
 
     # Set Dataloader
     vid_path, vid_writer = None, None
@@ -66,6 +69,7 @@ def detect(save_img=False):
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
+    c = 0
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
@@ -87,14 +91,20 @@ def detect(save_img=False):
         with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
             pred = model(img, augment=opt.augment)[0]
         t2 = time_synchronized()
-
+        print('Preds en tanda ', c)
+        print(pred)
+        print(pred.shape)
+        c += 1
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
         t3 = time_synchronized()
 
         # Apply Classifier
         if classify:
+            print(pred)
             pred = apply_classifier(pred, modelc, img, im0s)
+            names = ['Altered', 'Normal']
+            colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
