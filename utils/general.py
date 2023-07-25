@@ -1046,7 +1046,77 @@ def calculate_patch_coords(patch_size, img_size, overlap):
 
     return cc, true_overlap
 
+def max_label_detection(dets, labels, iou_threshold: float = 0.5) -> np.ndarray:
+    """
+    Calculate acuracy and recall for detections
+    """
+    altered_tp, altered_fp, altered_tn, altered_fn = 0, 0, 0, 0
+    normal_tp, normal_fp, normal_tn, normal_fn = 0, 0, 0, 0
 
-if __name__ == '__main__':
-    img = cv2.imread('from_path')
-    patches = extract_overlapped_patches(0.2, img)
+
+    predictions = np.array(dets)
+    labels = np.array(labels)
+
+    ipreds = predictions.shape[0]
+
+    prows, pcolumns = predictions.shape
+
+    lrows, lcolumns = labels.shape
+
+    sort_index = np.flip(predictions[:, 4].argsort())
+    predictions = predictions[sort_index]
+
+    sort_index = np.flip(labels[:, 4].argsort())
+    labels = labels[sort_index]
+
+    
+    
+    # Get IOU between labels and predictions
+    
+    for label in labels:
+
+        lbox = label[:, :4]
+        lcategory = label[:, 5]
+
+        for pred in predictions:
+            pbox = pred[:, :4]
+            pcategory = pred[:, 5]
+            
+            iou = box_iou_batch(lbox, pbox)[0]
+
+            # Calculate tp, fp, fn, tn for each class
+            if (iou > iou_threshold) and (lcategory == pcategory):
+
+                if (pcategory == "Altered"):
+                    altered_tp += 1
+                    normal_tn += 1
+                
+                else:
+                    normal_tp += 1
+                    altered_tn += 1
+
+            elif (iou > iou_threshold) & (pcategory != lcategory):
+
+                if (pcategory == "Altered"):
+                    altered_fp += 1
+                    normal_fn += 1
+                
+                else:
+                    normal_fp += 1
+                    altered_fn += 1
+        
+
+    altered_precision_rows = altered_tp / prows
+    altered_precision_fp =  altered_tp / (altered_tp + altered_fp)
+
+    altered_recall_rows = altered_tp / lrows
+    altered_recall_fn =  altered_tp / (altered_tp + altered_fn)
+
+    normal_precision_rows = normal_tp / prows
+    normal_precision_fp =  normal_tp / (normal_tp + normal_fp)
+
+    normal_recall_rows = normal_tp / lrows
+    normal_recall_fn =  normal_tp / (normal_tp + normal_fn)
+
+
+    return altered_precision_rows, altered_precision_fp, altered_recall_rows, altered_recall_fn,normal_precision_rows,normal_precision_fp, normal_recall_rows, normal_recall_fn
