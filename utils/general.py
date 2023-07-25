@@ -1075,14 +1075,14 @@ def max_label_detection(dets, labels, iou_threshold: float = 0.5) -> np.ndarray:
     
     for label in labels:
 
-        lbox = label[:, :4]
-        lcategory = label[:, 5]
+        lbox = label[:4]
+        lcategory = label[5]
 
         for pred in predictions:
-            pbox = pred[:, :4]
-            pcategory = pred[:, 5]
+            pbox = pred[:4]
+            pcategory = pred[5]
             
-            iou = box_iou_batch(lbox, pbox)[0]
+            iou = box_iou_batch(np.array([lbox]), np.array([pbox]))[0]
 
             # Calculate tp, fp, fn, tn for each class
             if (iou > iou_threshold) and (lcategory == pcategory):
@@ -1106,17 +1106,25 @@ def max_label_detection(dets, labels, iou_threshold: float = 0.5) -> np.ndarray:
                     altered_fn += 1
         
 
-    altered_precision_rows = altered_tp / prows
-    altered_precision_fp =  altered_tp / (altered_tp + altered_fp)
+    if(altered_tp == 0):
+        altered_precision_fp = 0
+        altered_recall_fn = 0
+    else:
+        altered_precision_fp =  altered_tp / (altered_tp + altered_fp)
+        altered_recall_fn =  altered_tp / (altered_tp + altered_fn)
 
+    altered_precision_rows = altered_tp / prows
     altered_recall_rows = altered_tp / lrows
-    altered_recall_fn =  altered_tp / (altered_tp + altered_fn)
+
+
+    if(normal_tp == 0):
+        normal_precision_fp = 0
+        normal_recall_fn = 0
+    else:
+        normal_precision_fp =  normal_tp / (normal_tp + normal_fp)
+        normal_recall_fn =  normal_tp / (normal_tp + normal_fn)
 
     normal_precision_rows = normal_tp / prows
-    normal_precision_fp =  normal_tp / (normal_tp + normal_fp)
-
     normal_recall_rows = normal_tp / lrows
-    normal_recall_fn =  normal_tp / (normal_tp + normal_fn)
 
-
-    return altered_precision_rows, altered_precision_fp, altered_recall_rows, altered_recall_fn,normal_precision_rows,normal_precision_fp, normal_recall_rows, normal_recall_fn
+    return altered_precision_rows

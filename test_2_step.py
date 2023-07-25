@@ -1,7 +1,7 @@
 import detect_from_patch as detect_from_patch
 from utils.plots import plot_one_box
 from utils.general import extract_overlapped_patches, \
-    non_max_suppression_patches, apply_classifier
+    non_max_suppression_patches, apply_classifier, max_label_detection
 from classification.train_v3.model import build_model
 import torch
 from torchvision import transforms
@@ -65,7 +65,8 @@ filename = "E:\\MLPathologyProject\\pap\\CRIC\\classifications.json"
 f = open (filename, "r")
 df = pd.read_json(f)
 
-test_path = "E:\\MLPathologyProject\\pap\\CRIC\\base_test"
+#test_path = "E:\\MLPathologyProject\\pap\\CRIC\\base_test"
+test_path = "E:\\MLPathologyProject\\pap\\CRIC\\muestras\\test_originales"
 
 yolo_weights = 'cellv1.pt' # Yolo weights path
 clasif_model = 'efficientnetb0' # Classification model
@@ -73,7 +74,7 @@ cweights = "E:\\MLPathologyProject\\pap\\CRIC\\result\\" \
     "clasificacion_efficientnetb0_2_clases\\model.pt" # Classification model weights path
 
 
-
+altered_precision_rows = 0
 
 # Iterate over test images
 for image_name in os.listdir(test_path):
@@ -97,5 +98,7 @@ for image_name in os.listdir(test_path):
                              yolo_weights, clasif_model, cweights)
     
     # Compare detections with labels
-    # TODO: Call function to compare detections with labels and measure metrics
-    # for all test images
+    altered_precision_rows += max_label_detection(dets, labels, 0.65)
+    
+altered_precision_rows /= len(os.listdir(test_path))
+print("Altered precision: ", altered_precision_rows)
