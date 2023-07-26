@@ -107,8 +107,17 @@ for image_name in os.listdir(test_path):
     
     # Compare detections with labels
     metrics = max_label_detection(metrics, dets, labels, 0.65)
+
+altered_precision = metrics['altered_tp'] / (metrics['altered_tp'] + metrics['altered_fp'])
+altered_recall = metrics['altered_tp'] / (metrics['altered_tp'] + metrics['altered_fn'])
+normal_precision = metrics['normal_tp'] / (metrics['normal_tp'] + metrics['normal_fp'])
+normal_recall = metrics['normal_tp'] / (metrics['normal_tp'] + metrics['normal_fn'])
+precision = (altered_precision + normal_precision) / 2
+recall = (altered_recall + normal_recall) / 2
     
-print("Altered precision: ", metrics['altered_tp'] / (metrics['altered_tp'] + metrics['altered_fp']))
-print("Altered recall: ", metrics['altered_tp'] / (metrics['altered_tp'] + metrics['altered_fn']))
-print("Normal precision: ", metrics['normal_tp'] / (metrics['normal_tp'] + metrics['normal_fp']))
-print("Normal recall: ", metrics['normal_tp'] / (metrics['normal_tp'] + metrics['normal_fn']))
+print("Altered precision: ", altered_precision)
+print("Altered recall: ", altered_recall)
+print("Normal precision: ", normal_precision)
+print("Normal recall: ", normal_recall)
+print("Precision: ", precision)
+print("Recall: ", recall)
