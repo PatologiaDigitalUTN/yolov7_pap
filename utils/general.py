@@ -1046,30 +1046,14 @@ def calculate_patch_coords(patch_size, img_size, overlap):
 
     return cc, true_overlap
 
-def max_label_detection(dets, labels, iou_threshold: float = 0.5) -> np.ndarray:
+def max_label_detection(metrics, dets, labels, iou_threshold: float = 0.5) -> np.ndarray:
     """
     Calculate acuracy and recall for detections
     """
-    altered_tp, altered_fp, altered_tn, altered_fn = 0, 0, 0, 0
-    normal_tp, normal_fp, normal_tn, normal_fn = 0, 0, 0, 0
 
 
     predictions = np.array(dets)
     labels = np.array(labels)
-
-    ipreds = predictions.shape[0]
-
-    prows, pcolumns = predictions.shape
-
-    lrows, lcolumns = labels.shape
-
-    sort_index = np.flip(predictions[:, 4].argsort())
-    predictions = predictions[sort_index]
-
-    sort_index = np.flip(labels[:, 4].argsort())
-    labels = labels[sort_index]
-
-    
     
     # Get IOU between labels and predictions
     
@@ -1081,50 +1065,34 @@ def max_label_detection(dets, labels, iou_threshold: float = 0.5) -> np.ndarray:
         for pred in predictions:
             pbox = pred[:4]
             pcategory = pred[5]
-            
-            iou = box_iou_batch(np.array([lbox]), np.array([pbox]))[0]
+            print('Entra en IOU BATCH')
+            iou = box_iou_batch(np.array([lbox]), np.array([pbox]))[0][0]
+            print('IOU', iou)
+            if(iou > iou_threshold):
+                print('PCATEGORY', pcategory)
+                print('LCATEGORY', lcategory)
+            else:
+                print('IOU menor a threshold')
 
             # Calculate tp, fp, fn, tn for each class
             if (iou > iou_threshold) and (lcategory == pcategory):
 
-                if (pcategory == "Altered"):
-                    altered_tp += 1
-                    normal_tn += 1
+                if (pcategory == 0):
+                    metrics['altered_tp'] += 1
+                    metrics['normal_tn'] += 1
                 
                 else:
-                    normal_tp += 1
-                    altered_tn += 1
+                    metrics['normal_tp'] += 1
+                    metrics['altered_tn'] += 1
 
             elif (iou > iou_threshold) & (pcategory != lcategory):
 
-                if (pcategory == "Altered"):
-                    altered_fp += 1
-                    normal_fn += 1
+                if (pcategory == 0):
+                    metrics['altered_fp'] += 1
+                    metrics['normal_fn'] += 1
                 
                 else:
-                    normal_fp += 1
-                    altered_fn += 1
-        
+                    metrics['normal_fp'] += 1
+                    metrics['altered_fn'] += 1
 
-    if(altered_tp == 0):
-        altered_precision_fp = 0
-        altered_recall_fn = 0
-    else:
-        altered_precision_fp =  altered_tp / (altered_tp + altered_fp)
-        altered_recall_fn =  altered_tp / (altered_tp + altered_fn)
-
-    altered_precision_rows = altered_tp / prows
-    altered_recall_rows = altered_tp / lrows
-
-
-    if(normal_tp == 0):
-        normal_precision_fp = 0
-        normal_recall_fn = 0
-    else:
-        normal_precision_fp =  normal_tp / (normal_tp + normal_fp)
-        normal_recall_fn =  normal_tp / (normal_tp + normal_fn)
-
-    normal_precision_rows = normal_tp / prows
-    normal_recall_rows = normal_tp / lrows
-
-    return altered_precision_rows
+    return metrics

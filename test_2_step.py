@@ -19,13 +19,9 @@ def bethesda_to_2_class_idx(name):
             return 0
     
 
-def process_inference(cv_image, yolo_weights_pth, clasif_model, cweights_pth):
+def process_inference(device, model, modelc, cv_image):
     im0 = cv_image.copy()
     dets = torch.tensor([])
-
-    device = select_device('cpu')
-
-    model = attempt_load(yolo_weights_pth, map_location=device)  # load FP32 model
 
     # Check if cv_image resolution is bigger than 640 x 640
     if cv_image.shape[0] > 640 or cv_image.shape[1] > 640:
@@ -42,11 +38,6 @@ def process_inference(cv_image, yolo_weights_pth, clasif_model, cweights_pth):
     dets = non_max_suppression_patches(dets, 0.2)
     dets = [dets]
     #dets = nms.tolist()
-    
-    # Load classifier
-    modelc = build_model(model=clasif_model, num_classes=2) # usando misma funcion que usamos para entrenar los modelos
-    modelc.load_state_dict(torch.load(cweights_pth, map_location=device))
-    modelc.to(device).eval()
 
     transform = transforms.ToTensor()
     img = transform(cv_image)
@@ -73,8 +64,27 @@ clasif_model = 'efficientnetb0' # Classification model
 cweights = "E:\\MLPathologyProject\\pap\\CRIC\\result\\" \
     "clasificacion_efficientnetb0_2_clases\\model.pt" # Classification model weights path
 
+device = select_device('cpu')
 
-altered_precision_rows = 0
+model = attempt_load(yolo_weights, map_location=device)  # load FP32 model
+
+# Load classifier
+modelc = build_model(model=clasif_model, num_classes=2) # usando misma funcion que usamos para entrenar los modelos
+modelc.load_state_dict(torch.load(cweights, map_location=device))
+modelc.to(device).eval()
+
+altered_tp, altered_fp = 0, 0
+
+metrics =	{
+    "altered_tp": 0,
+    "altered_fp": 0,
+    "altered_tn": 0,
+    "altered_fn": 0,
+    "normal_tp": 0,
+    "normal_fp": 0,
+    "normal_tn": 0,
+    "normal_fn": 0
+}
 
 # Iterate over test images
 for image_name in os.listdir(test_path):
@@ -93,12 +103,12 @@ for image_name in os.listdir(test_path):
         label = torch.tensor([[x1, y1, x2, y2, conficence, class_idx]])
         labels = torch.cat((labels, label), 0)
     
-    print(labels)
-    dets = process_inference(cv2.imread(os.path.join(test_path, image_name)),
-                             yolo_weights, clasif_model, cweights)
+    dets = process_inference(device, model, modelc, cv2.imread(os.path.join(test_path, image_name)))
     
     # Compare detections with labels
-    altered_precision_rows += max_label_detection(dets, labels, 0.65)
+    metrics = max_label_detection(metrics, dets, labels, 0.65)
     
-altered_precision_rows /= len(os.listdir(test_path))
-print("Altered precision: ", altered_precision_rows)
+print("Altered precision: ", metrics['altered_tp'] / (metrics['altered_tp'] + metrics['altered_fp']))
+print("Altered recall: ", metrics['altered_tp'] / (metrics['altered_tp'] + metrics['altered_fn']))
+print("Normal precision: ", metrics['normal_tp'] / (metrics['normal_tp'] + metrics['normal_fp']))
+print("Normal recall: ", metrics['normal_tp'] / (metrics['normal_tp'] + metrics['normal_fn']))
