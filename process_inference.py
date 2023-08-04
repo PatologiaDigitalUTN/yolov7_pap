@@ -41,7 +41,7 @@ def process_inference(cv_image, yolo_weights_pth, clasif_model, cweights_pth):
     transform = transforms.ToTensor()
     img = transform(cv_image)
 
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
+    # img /= 255.0  # 0 - 255 to 0.0 - 1.0
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
     

@@ -865,20 +865,24 @@ def apply_classifier(x, model, img, im0):
             ims = []
             for j, a in enumerate(d):  # per item
                 cutout = im0[i][int(a[1]):int(a[3]), int(a[0]):int(a[2])]
-                im = cv2.resize(cutout, (224, 224))  # BGR
-                #cv2.imwrite(f"D:\\PatoUTN\\Entrenamientos\\probando\\im{j}.png", im)
-                # cv2.imwrite('test%i.jpg' % j, cutout)
-
-                im = im[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
-                im = np.ascontiguousarray(im, dtype=np.float32)  # uint8 to float32
-                im /= 255.0  # 0 - 255 to 0.0 - 1.0
-                ims.append(im)
-
-            pred_cls2 = model(torch.Tensor(ims).to(d.device)).argmax(1)  # classifier prediction
+                # Preprocess the image
+                image = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.ToPILImage(),
+                    torchvision.transforms.Resize((224, 224)),
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225]
+                    )
+                ])
+                image = transform(image)
+                image = torch.unsqueeze(image, 0)
+                pred_cls2 = model(image.to(d.device)).argmax(1)  # classifier prediction
             #print('CLASS YOLO', pred_cls1)
             #print('CLASS 2ND CLASIF', pred_cls2)
             #x[i] = x[i][pred_cls1 == pred_cls2]  # retain matching class detections
-            x[i][:, 5] = pred_cls2
+                x[i][j][5] = pred_cls2
 
     return x
 
