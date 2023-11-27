@@ -44,10 +44,10 @@ def detect(save_img=False):
         model.half()  # to FP16
 
     # Second-stage classifier
-    classify = True
+    classify = False
     if classify:
         modelc = build_model(model='efficientnetb0', num_classes=2) # usando misma funcion que usamos para entrenar los modelos
-        modelc.load_state_dict(torch.load("E:\\MLPathologyProject\\pap\\CRIC\\result\\clasificacion_efficientnetb0_2_clases\\model.pt", map_location=device))
+        modelc.load_state_dict(torch.load("efnetb0v1.pt", map_location=device))
         modelc.to(device).eval()
 
     # Set Dataloader
@@ -105,6 +105,7 @@ def detect(save_img=False):
             pred = apply_classifier(pred, modelc, img, im0s)
             names = ['Altered', 'Normal']
             colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+        t4 = time_synchronized()
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -139,7 +140,7 @@ def detect(save_img=False):
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
             # Print time (inference + NMS)
-            print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
+            print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS, ({(1E3 * (t4 - t3)):.1f}ms) 2nd Step')
 
             # Stream results
             if view_img:

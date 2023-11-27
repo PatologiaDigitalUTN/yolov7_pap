@@ -46,7 +46,7 @@ def create_3_class_dataset(src_folder, dst_folder):
 def balance_2_class(src_folder, dst_folder, downsample_amount=0):
     """Joins classes by normal and altered, downsamples biggest class and
     augments the other"""
-    create_2_class_dataset(src_folder, dst_folder)
+    shutil.copytree(src_folder, dst_folder)
     train_folder = os.path.join(dst_folder, 'train')
     normal_folder = os.path.join(train_folder, 'Normal')
     altered_folder = os.path.join(train_folder, 'Altered')
@@ -63,7 +63,7 @@ def balance_2_class(src_folder, dst_folder, downsample_amount=0):
 def balance_3_class(src_folder, dst_folder, downsample_amount=0):
     """Joins classes by Normal, Low-Grade and High-grade. Downsamples normal
     class and augments the others."""
-    create_3_class_dataset(src_folder, dst_folder)
+    shutil.copytree(src_folder, dst_folder)
     train_folder = os.path.join(dst_folder, 'train')
     normal_folder = os.path.join(train_folder, 'Normal')
     normal_images = os.listdir(normal_folder)
@@ -203,6 +203,6 @@ def augment_operations(operation, img):
 
 
 if __name__ == '__main__':
-    src_folder = 'E:\\MLPathologyProject\\pap\\CRIC\\prepared_dataset\\cells'
-    dst_folder = 'E:\\MLPathologyProject\\pap\\CRIC\\prepared_dataset\\cells_3_class_balanced'
-    balance_3_class(src_folder, dst_folder, 3010)
+    src_folder = '/shared/PatoUTN/PAP/Datasets/originales/6/clasificacion'
+    dst_folder = '/shared/PatoUTN/PAP/Datasets/aumentados/6/clasificacion'
+    balance_6_class(src_folder, dst_folder, 2000)

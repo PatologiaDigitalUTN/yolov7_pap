@@ -1,0 +1,9 @@
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: /shared/PatoUTN/PAP/Datasets/originales/1/yolo_idx_class_all_labeled/train
+val: /shared/PatoUTN/PAP/Datasets/originales/1/yolo_idx_class_all_labeled/test
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'Cell' ]

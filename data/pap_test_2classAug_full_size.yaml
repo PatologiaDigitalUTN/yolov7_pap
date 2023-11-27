@@ -1,0 +1,10 @@
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: /shared/PatoUTN/PAP/Datasets/aumentados/2/particionado_labeled/train/
+val: /shared/PatoUTN/PAP/Datasets/aumentados/2/particionado_labeled/test/
+
+
+# number of classes
+nc: 2
+
+# class names
+names: [ 'Normal', 'Altered' ]
