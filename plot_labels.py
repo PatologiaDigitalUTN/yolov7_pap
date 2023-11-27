@@ -1,5 +1,5 @@
-import detect_from_patch as detect_from_patch
-from plots import plot_one_box
+
+from utils.plots import plot_one_box
 import torch
 from torchvision import transforms
 import pandas as pd
@@ -7,16 +7,29 @@ import os
 import cv2
 import random
 
-filename = "E:\\MLPathologyProject\\pap\\CRIC\\classifications.json"
+
+def bethesda_to_2_class_idx(name):
+    if name == 'Negative for intraepithelial lesion':
+            return 1
+    else:
+            return 0
+    
+  
+def bethesda_to_2_class(name):
+    if name == 'Negative for intraepithelial lesion':
+            return 'Normal'
+    else:
+            return 'Altered'
+
+
+filename = "/shared/PatoUTN/PAP/Datasets/original/CRIC_classifications.json"
 f = open (filename, "r")
 df = pd.read_json(f)
 
-src_path = "E:\\MLPathologyProject\\pap\\CRIC\\base_test"
-dest_path = "E:\\MLPathologyProject\\pap\\CRIC\\base_test_labels"
+src_path = "/shared/PatoUTN/PAP/Datasets/borrar"
+dest_path = "/shared/PatoUTN/PAP/Datasets/paper"
 #Get a list of 6 random colors for the bounding boxes
-colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(6)]
-class_idx = {'Negative for intraepithelial lesion': 0, 'ASC-H': 1, 
-             'ASC-US': 2, 'HSIL': 3, 'LSIL': 4, 'SCC': 5}
+colors_labels = [[0, 0, 255], [ 88, 214, 33 ]]
 
 for image_name in os.listdir(src_path):
     labels = torch.tensor([])
@@ -32,7 +45,7 @@ for image_name in os.listdir(src_path):
         x2 = float(cell['nucleus_x']) + 45
         y2 = float(cell['nucleus_y']) + 45
         conficence = 1
-        class_name = cell['bethesda_system']
-
-        plot_one_box((x1,y1,x2,y2), cv_image, label=class_name, color=colors[class_idx[class_name]], line_thickness=1)
+        class_idx = bethesda_to_2_class_idx(cell['bethesda_system'])
+        class_name = bethesda_to_2_class(cell['bethesda_system'])
+        plot_one_box((x1,y1,x2,y2), cv_image, label=class_name, color=colors_labels[class_idx], line_thickness=2)
     cv2.imwrite(os.path.join(dest_path, image_name), cv_image)

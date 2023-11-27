@@ -1056,7 +1056,7 @@ def max_label_detection(metrics, dets, labels, iou_threshold: float = 0.5) -> np
     """
 
 
-    predictions = np.array(dets)
+    predictions = dets.detach().cpu().numpy()
     labels = np.array(labels)
     
     # Get IOU between labels and predictions
@@ -1065,18 +1065,25 @@ def max_label_detection(metrics, dets, labels, iou_threshold: float = 0.5) -> np
 
         lbox = label[:4]
         lcategory = label[5]
+        if lcategory == 0:
+            metrics['altered_gt'] += 1
+
+        elif lcategory == 1:
+            metrics['normal_gt'] += 1
 
         for pred in predictions:
             pbox = pred[:4]
             pcategory = pred[5]
-            print('Entra en IOU BATCH')
+
+            if pcategory == 0:
+                metrics['altered_d'] += 1
+
+            elif pcategory == 1:
+                metrics['normal_d'] += 1
+
+
             iou = box_iou_batch(np.array([lbox]), np.array([pbox]))[0][0]
-            print('IOU', iou)
-            if(iou > iou_threshold):
-                print('PCATEGORY', pcategory)
-                print('LCATEGORY', lcategory)
-            else:
-                print('IOU menor a threshold')
+
 
             # Calculate tp, fp, fn, tn for each class
             if (iou > iou_threshold) and (lcategory == pcategory):

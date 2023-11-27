@@ -245,6 +245,9 @@ def test(data,
     # Plots
     if plots:
         confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
+        confusion_matrix.plot_normalized(save_dir=save_dir, names=list(names.values()))
+
+        confusion_matrix.print()
         if wandb_logger and wandb_logger.wandb:
             val_batches = [wandb_logger.wandb.Image(str(f), caption=f.name) for f in sorted(save_dir.glob('test*.jpg'))]
             wandb_logger.log({"Validation": val_batches})
