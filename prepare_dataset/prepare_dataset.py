@@ -42,11 +42,11 @@ def correctSize(xx, yy):
   return corrected_x, corrected_y
 
 split_original_images = True
-extract_cells = True
-create_subimages = True
+extract_cells = False
+create_subimages = False
 
-original_images_path = 'H:/PatoUTN/pap/CROC original/base'
-original_images_splitted_path = 'H:/PatoUTN/pap/CROC original/prepared_dataset/full_size'
+original_images_path = "/shared/PatoUTN/PAP/Datasets/SIPaKMeD/original/2/NoSpliteado"
+original_images_splitted_path = "/shared/PatoUTN/PAP/Datasets/SIPaKMeD/original/2/Split"
 cells_images_path = 'H:/PatoUTN/pap/CROC original/prepared_dataset/cells'
 subimages_path = 'H:/PatoUTN/pap/CROC original/prepared_dataset/subimages'
 
